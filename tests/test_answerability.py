@@ -297,6 +297,10 @@ class TestFailurePolicy:
 # ChatClient HTTP behaviour, via a mock transport
 # --------------------------------------------------------------------------
 def client_with(handler, **kw):
+    # Tests override the retry count so the production backoff (2s base, 30s
+    # cap, 5 attempts -- sized to outlast a real rate-limit window) does not
+    # make the suite take minutes.
+    kw.setdefault("max_http_attempts", 3)
     c = ChatClient(api_key="test-key", base_url="https://example.invalid/v1",
                    **kw)
     c._client = httpx.Client(transport=httpx.MockTransport(handler))
@@ -351,9 +355,19 @@ class TestChatClientHTTP:
             calls["n"] += 1
             raise httpx.ConnectTimeout("timed out")
 
+        c = client_with(handler, max_http_attempts=3)
         with pytest.raises(LLMTransient):
-            client_with(handler).chat([{"role": "user", "content": "x"}])
-        assert calls["n"] == 3
+            c.chat([{"role": "user", "content": "x"}])
+        assert calls["n"] == c.max_http_attempts
+
+    def test_production_retry_policy_is_sized_for_rate_limits(self):
+        """
+        REGRESSION: the 600-call calibration lost 41 calls to HTTP 429 with the
+        original 3 attempts / 3 s cap -- too fast and too few to outlast a
+        rate-limit window. Those failures fail OPEN and corrupted the sample.
+        """
+        c = ChatClient(api_key="k")
+        assert c.max_http_attempts >= 5
 
     def test_unexpected_shape_raises(self):
         def handler(request):

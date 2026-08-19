@@ -750,6 +750,89 @@ zero rows. Results will cover en/hi/mr.
 
 ---
 
+## E14 — Phase 2 calibration run #1: INVALID (methodology bug, documented)
+
+**Command:** `python evaluation/answerability_calibration.py --n-per-class 100 --concurrency 6 --timeout 120`
+**Raw:** `experiments/answerability_calibration.json` (600 per-query rows)
+
+**Verdict: the pre-registered gate was NOT applied. This run is not valid
+evidence.** The numbers below are recorded only so the failure is auditable.
+
+### Measured (contaminated — do not cite)
+
+| lang | system | falseAns | falseRef | precision | recall | balAcc |
+|---|---|---|---|---|---|---|
+| en | A cosine only | 0.8000 | 0.0600 | 0.5402 | 0.9400 | 0.5700 |
+| en | B judge only | 0.5300 | 0.3800 | 0.5391 | 0.6200 | 0.5450 |
+| en | C cosine + judge | 0.4300 | 0.3900 | 0.5865 | 0.6100 | 0.5900 |
+| hi | A cosine only | 0.6400 | 0.2000 | 0.5556 | 0.8000 | 0.5800 |
+| hi | B judge only | 0.2700 | 0.4200 | 0.6824 | 0.5800 | 0.6550 |
+| hi | C cosine + judge | 0.2100 | 0.4600 | 0.7200 | 0.5400 | 0.6650 |
+| mr | A cosine only | 0.5500 | 0.2400 | 0.5802 | 0.7600 | 0.6050 |
+| mr | B judge only | 0.2400 | 0.4400 | 0.7000 | 0.5600 | 0.6600 |
+| mr | C cosine + judge | 0.2200 | 0.4900 | 0.6986 | 0.5100 | 0.6450 |
+
+Judge-unavailable counts: **en 41 · hi 27 · mr 35 = 103 of 600**.
+Downgraded verdicts: 0. Invalid citations: 0 (the anti-fabrication rule never
+had to fire).
+
+Judge latency (ms), all 600 calls:
+
+| lang | n | P50 | P70 | P100 | mean |
+|---|---|---|---|---|---|
+| en | 200 | 940 | 1,033 | 57,782 | 1,941 |
+| hi | 200 | 8,638 | 14,346 | 96,801 | 12,085 |
+| mr | 200 | 2,688 | 14,304 | 72,757 | 10,232 |
+| **all** | 600 | **1,027** | **9,486** | **96,801** | 8,086 |
+
+Successful calls only (n=497): P50 918 · P70 5,597 · P100 96,801.
+
+### Why it is invalid
+
+| cause | count | fix applied |
+|---|---|---|
+| HTTP 429 rate limit | 41 | backoff was 0.3 s base / 3 s cap / 3 attempts — too fast and too few to outlast a rate-limit window. Now **2 s / 30 s / 5 attempts**. |
+| `content=None` (reasoning truncation) | 62 | `max_tokens=1500` still truncated the hard tail. Now **3000**. |
+
+A failed verdict **fails open** (`sufficient=True`), so each is scored as
+"answered". That alone would be tolerable noise. What invalidates the run is
+that the failures were **not randomly distributed**:
+
+| lang | failures | on negatives | on positives |
+|---|---|---|---|
+| **en** | 41 | **41** | **0** |
+| hi | 27 | 11 | 16 |
+| mr | 35 | 9 | 26 |
+
+**Every English failure landed on a negative.** The harness built
+`items = positives + negatives` and processed them in that order; rate-limit
+pressure accumulated across the run and therefore struck the back half, which
+for English is entirely negatives. Fail-open on a negative *is* a false answer,
+so English B/C false-answer rates were inflated **by call ordering, not by
+judge quality**.
+
+Recomputing English on successful calls only: B false-answer
+**0.5300 → 0.2034**, balanced accuracy **0.5450 → 0.7083**. A swing that large
+can reverse the gate verdict, which is exactly why the run cannot be used in
+either direction.
+
+**Fix:** the two classes are now shuffled together
+(`random.Random(seed + 1).shuffle(items)`), so any residual failure rate is
+class-independent. The harness records `judge_failure_rate` and
+`results_trustworthy` per language and warns loudly above 2%.
+
+### Secondary observation (not a gate input)
+
+System A here scores 0.5700 / 0.5800 / 0.6050, below the E10 pre-registered
+baseline of 0.6525 / 0.6325 / 0.6100. The two are measured differently: E10
+thresholds raw dense candidates, while this harness thresholds the top-5 list
+*after* MMR reranking. Within a single run A/B/C are directly comparable
+because all three consume identical candidates; across runs they are not. When
+run #2 lands, the gate is applied against **A as measured in that same run**,
+with the E10 figures as context rather than as the literal threshold.
+
+---
+
 ## Pending / not done
 
 - **e5-base and bge-m3 comparison.** Started, then abandoned: e5-base is ~3×

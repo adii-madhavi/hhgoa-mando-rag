@@ -15,6 +15,11 @@ Retry policy
 (bad key, bad model name, malformed request) and fails immediately -- retrying
 a 400 just burns the latency budget three times over.
 
+Backoff is sized for RATE LIMITS, not jitter. A 600-call calibration at
+concurrency 6 hit HTTP 429 on 41 calls with the original 0.3s/3s-max policy:
+too fast and too few attempts to outlast a rate-limit window. Now 2s base,
+30s cap, 5 attempts.
+
 A malformed JSON *body* is a third case: the HTTP call succeeded but the model
 did not follow the schema. That is retried separately, because it is usually
 fixed by simply asking again, and the retry prompt says what was wrong.
@@ -91,7 +96,7 @@ def extract_json(content: str) -> dict:
 class ChatClient:
     def __init__(self, api_key: str | None = None, model: str | None = None,
                  base_url: str | None = None, timeout_s: float = 15.0,
-                 max_http_attempts: int = 3):
+                 max_http_attempts: int = 5):
         self.api_key = api_key or os.environ.get("LLM_API_KEY") \
             or os.environ.get("SARVAM_API_KEY")
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
@@ -112,7 +117,7 @@ class ChatClient:
         state = {"attempts": 0}
 
         @retry(stop=stop_after_attempt(self.max_http_attempts),
-               wait=wait_exponential(multiplier=0.3, max=3.0),
+               wait=wait_exponential(multiplier=2.0, max=30.0),
                retry=retry_if_exception_type(LLMTransient), reraise=True)
         def _attempt() -> dict:
             state["attempts"] += 1

@@ -1,6 +1,7 @@
 # MANDO — Project State
 
-**Status: Phase 2 SMOKE PASSED. Full 600-call calibration not yet run (held).**
+**Status: Phase 2 run #1 INVALID (methodology bug, fixed). Re-run required.**
+**Phase 3 NOT unlocked.**
 Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
@@ -100,7 +101,40 @@ Measured only by `evaluation/konkani_product_eval.py` (stamped
 
 ---
 
-## Phase 2 — SMOKE RESULTS (n=5 per class — INDICATIVE, NOT CONCLUSIVE)
+## Phase 2 — RUN #1 INVALID. GATE NOT APPLIED. PHASE 3 NOT UNLOCKED.
+
+600 calls completed, but **103 failed** (41 HTTP 429 + 62 reasoning-truncation)
+and the failures were **not random**. The harness processed all positives then
+all negatives, so accumulating rate-limit pressure struck the back half — for
+English, **41 of 41 failures landed on negatives**. Failed verdicts fail open,
+so each became a false answer by construction: English B false-answer was
+inflated **0.2034 → 0.5300** and balanced accuracy depressed **0.7083 → 0.5450**
+by call *order*.
+
+That swing is large enough to reverse the verdict, so the pre-registered rule
+was **not** applied in either direction.
+
+Four fixes applied (177 tests passing):
+1. the two classes are shuffled together — failures can no longer concentrate
+2. retry backoff 0.3 s/3 s/3 attempts → **2 s/30 s/5 attempts** (rate limits)
+3. judge `max_tokens` 1500 → **3000** (reasoning-model tail)
+4. harness records `judge_failure_rate` / `results_trustworthy`, warns above 2%
+
+Contaminated numbers, latency percentiles and full diagnosis: EXPERIMENTS.md E14.
+
+### Re-run command (needs go-ahead; ~60–90 min)
+
+```bash
+python evaluation/answerability_calibration.py --n-per-class 100 \
+  --concurrency 3 --timeout 120
+```
+
+Concurrency lowered from 6 deliberately: at 6 the API rate-limited and per-call
+latency inflated (hi P50 8.6 s, P100 96.8 s).
+
+---
+
+## Phase 2 — earlier SMOKE (n=5 per class — INDICATIVE, NOT CONCLUSIVE)
 
 Each metric moves in 0.2 steps at this sample size. These do **not** satisfy
 the gate; the full run decides.

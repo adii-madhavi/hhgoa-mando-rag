@@ -5,6 +5,15 @@ Deadline: 2026-08-22 23:59.
 
 ---
 
+## 🔴 NEXT ACTION
+
+- [ ] **Re-run Phase 2 calibration.** Run #1 was invalid (EXPERIMENTS.md E14).
+      Needs your go-ahead, ~60-90 min:
+      `python evaluation/answerability_calibration.py --n-per-class 100 --concurrency 3 --timeout 120`
+- [ ] Then apply the pre-registered gate against **A as measured in that run**
+
+---
+
 ## 🔴 NEEDS A DECISION FROM YOU
 
 - [ ] **Judge latency**: p50 907 ms en but **12 s hi**, p100 50–61 s (timeout is
@@ -39,6 +48,10 @@ Deadline: 2026-08-22 23:59.
 - [x] Pushed to https://github.com/adii-madhavi/hhgoa-mando-rag (`main`)
 - [x] `requirements.txt` regenerated from AST scan of real imports; `datasets`
       and `pandas` dropped (unused); all 16 packages pinned and verified
+- [x] **Phase 2 calibration run #1 (600 calls) - INVALID.** 103/600 judge
+      calls failed and concentrated on one class by call order, inflating
+      English false-answer 0.2034 -> 0.5300. Gate NOT applied, Phase 3 NOT
+      unlocked. Root causes fixed (interleaving, backoff, token budget).
 - [x] **Phase 2 smoke test (n=5/class) run live** — found and fixed: deprecated
       `sarvam-m` model, and reasoning-model `max_tokens` truncation returning
       `content=None`. 176 tests passing.

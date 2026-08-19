@@ -153,13 +153,14 @@ class AnswerabilityJudge:
                  timeout_s: float = 8.0, max_schema_attempts: int = 2,
                  fail_closed: bool = False,
                  min_confidence: float = 0.0,
-                 max_tokens: int = 1500):
+                 max_tokens: int = 3000):
         self.client = client or ChatClient(timeout_s=timeout_s)
         # Sized for REASONING models. sarvam-105b emits reasoning_content
-        # before its answer; measured 901 completion tokens for a judge
-        # verdict. At 300 it returned finish_reason="length" and content=None.
-        # Too small a budget here does not degrade quality -- it produces no
-        # answer at all.
+        # before its answer; a typical verdict cost 901 completion tokens.
+        # At 300 it returned finish_reason="length" and content=None; at 1500
+        # it STILL truncated on 62 of 600 calibration calls. 3000 is sized for
+        # the hard tail, not the median. Too small a budget here does not
+        # degrade quality -- it produces no answer at all.
         self.max_tokens = max_tokens
         self.max_schema_attempts = max_schema_attempts
         self.fail_closed = fail_closed

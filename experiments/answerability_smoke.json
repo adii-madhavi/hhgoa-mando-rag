@@ -4,6 +4,8 @@
     "base_url": "https://api.sarvam.ai/v1",
     "top_k": 5,
     "n_per_class": 5,
+    "concurrency": 8,
+    "timeout_s": 60.0,
     "cosine_thresholds": {
       "min_top_score": 0.87,
       "min_mean_top_k": 0.85
@@ -64,9 +66,9 @@
           "tn": 5
         },
         "judge_ms": {
-          "p50": 906.7,
-          "p100": 2694.4,
-          "mean": 1090.6
+          "p50": 980.9,
+          "p100": 61462.1,
+          "mean": 6983.9
         },
         "judge_unavailable": 0,
         "judge_downgraded_verdicts": 0,
@@ -88,7 +90,7 @@
           "tn": 5
         }
       },
-      "wall_seconds": 11.3
+      "wall_seconds": 61.8
     },
     "hi": {
       "A_cosine_only": {
@@ -110,44 +112,44 @@
       "B_judge_only": {
         "n_positive": 5,
         "n_negative": 5,
-        "false_answer_rate": 0.0,
-        "false_refusal_rate": 0.2,
-        "precision": 1.0,
-        "recall": 0.8,
-        "specificity": 1.0,
-        "balanced_accuracy": 0.9,
+        "false_answer_rate": 0.2,
+        "false_refusal_rate": 0.4,
+        "precision": 0.75,
+        "recall": 0.6,
+        "specificity": 0.8,
+        "balanced_accuracy": 0.7,
         "confusion": {
-          "tp": 4,
-          "fn": 1,
-          "fp": 0,
-          "tn": 5
+          "tp": 3,
+          "fn": 2,
+          "fp": 1,
+          "tn": 4
         },
         "judge_ms": {
-          "p50": 12048.3,
-          "p100": 50003.9,
-          "mean": 14300.3
+          "p50": 18457.3,
+          "p100": 69700.9,
+          "mean": 19422.0
         },
-        "judge_unavailable": 3,
+        "judge_unavailable": 2,
         "judge_downgraded_verdicts": 0,
         "judge_invalid_citations": 0
       },
       "C_cosine_and_judge": {
         "n_positive": 5,
         "n_negative": 5,
-        "false_answer_rate": 0.0,
-        "false_refusal_rate": 0.2,
-        "precision": 1.0,
-        "recall": 0.8,
-        "specificity": 1.0,
-        "balanced_accuracy": 0.9,
+        "false_answer_rate": 0.2,
+        "false_refusal_rate": 0.4,
+        "precision": 0.75,
+        "recall": 0.6,
+        "specificity": 0.8,
+        "balanced_accuracy": 0.7,
         "confusion": {
-          "tp": 4,
-          "fn": 1,
-          "fp": 0,
-          "tn": 5
+          "tp": 3,
+          "fn": 2,
+          "fp": 1,
+          "tn": 4
         }
       },
-      "wall_seconds": 143.4
+      "wall_seconds": 70.1
     },
     "mr": {
       "A_cosine_only": {
@@ -170,23 +172,23 @@
         "n_positive": 5,
         "n_negative": 5,
         "false_answer_rate": 0.0,
-        "false_refusal_rate": 0.6,
+        "false_refusal_rate": 0.4,
         "precision": 1.0,
-        "recall": 0.4,
+        "recall": 0.6,
         "specificity": 1.0,
-        "balanced_accuracy": 0.7,
+        "balanced_accuracy": 0.8,
         "confusion": {
-          "tp": 2,
-          "fn": 3,
+          "tp": 3,
+          "fn": 2,
           "fp": 0,
           "tn": 5
         },
         "judge_ms": {
-          "p50": 949.8,
-          "p100": 60977.3,
-          "mean": 8528.3
+          "p50": 8808.8,
+          "p100": 53752.4,
+          "mean": 11752.4
         },
-        "judge_unavailable": 1,
+        "judge_unavailable": 2,
         "judge_downgraded_verdicts": 0,
         "judge_invalid_citations": 0
       },
@@ -194,19 +196,19 @@
         "n_positive": 5,
         "n_negative": 5,
         "false_answer_rate": 0.0,
-        "false_refusal_rate": 0.6,
+        "false_refusal_rate": 0.4,
         "precision": 1.0,
-        "recall": 0.4,
+        "recall": 0.6,
         "specificity": 1.0,
-        "balanced_accuracy": 0.7,
+        "balanced_accuracy": 0.8,
         "confusion": {
-          "tp": 2,
-          "fn": 3,
+          "tp": 3,
+          "fn": 2,
           "fp": 0,
           "tn": 5
         }
       },
-      "wall_seconds": 85.7
+      "wall_seconds": 54.1
     }
   },
   "per_query": [
@@ -220,8 +222,9 @@
       "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 1035.3,
-      "judge_reason": "Passages p1 and p4 directly define psyllium husk powder as a soluble fiber derived from the seeds of Plantago ovata, which is the specific information requested."
+      "judge_ms": 1120.1,
+      "judge_error": null,
+      "judge_reason": "Passages p1 and p4 directly define what husk powder psyllium is, stating it comes from the seeds of Plantago ovata and is a soluble fiber used as a dietary supplement."
     },
     {
       "lang": "en",
@@ -233,8 +236,9 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 1017.8,
-      "judge_reason": "The passages explicitly list the eligibility requirements for CalWORKs, including citizenship, residency, family situation, resources, and income."
+      "judge_ms": 1035.0,
+      "judge_error": null,
+      "judge_reason": "The passages explicitly list the eligibility requirements for CalWORKs, including citizenship, residency, family situation, resources, income, and other factors."
     },
     {
       "lang": "en",
@@ -246,7 +250,8 @@
       "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 2694.4,
+      "judge_ms": 1029.8,
+      "judge_error": null,
       "judge_reason": "The passages provide a clear definition of a confidence man as someone who gains a victim's trust to take their money or property."
     },
     {
@@ -259,7 +264,8 @@
       "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 825.9,
+      "judge_ms": 964.4,
+      "judge_error": null,
       "judge_reason": "Passage p1 explicitly states Dale Earnhardt's sisters are Kaye and Kathy."
     },
     {
@@ -269,10 +275,11 @@
       "cosine_sufficient": true,
       "cosine_top": 0.9236,
       "judge_sufficient": true,
-      "judge_confidence": 0.9,
+      "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 1024.2,
+      "judge_ms": 980.9,
+      "judge_error": null,
       "judge_reason": "The passages define Cornelia de Lange syndrome as a rare genetic disorder and list its common features, which directly answers the question."
     },
     {
@@ -285,8 +292,9 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 901.0,
-      "judge_reason": "The passages describe the goal of creating a yellow cross but do not explain the final step or algorithm to solve it."
+      "judge_ms": 749.7,
+      "judge_error": null,
+      "judge_reason": "The passages describe the goal of creating a yellow cross but do not explain the final step to solve it."
     },
     {
       "lang": "en",
@@ -298,7 +306,8 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 905.5,
+      "judge_ms": 61462.1,
+      "judge_error": null,
       "judge_reason": "The passages identify Edith Kermit Carow Roosevelt as the First Lady and wife of Theodore Roosevelt, but do not specify what she is famous for beyond these roles."
     },
     {
@@ -311,8 +320,9 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 906.7,
-      "judge_reason": "The passages discuss the amount and timing of deductions for start-up costs, but do not define what specific expenses are considered start-up costs for tax deduction."
+      "judge_ms": 852.0,
+      "judge_error": null,
+      "judge_reason": "The passages discuss the amount and timing of deductions for start-up costs but do not define what specific expenses are considered start-up costs for tax deduction."
     },
     {
       "lang": "en",
@@ -324,7 +334,8 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 778.3,
+      "judge_ms": 872.5,
+      "judge_error": null,
       "judge_reason": "The passages discuss time zones and demographics of Chevy Chase, Maryland, but do not explain what 'TSM' refers to in the question."
     },
     {
@@ -337,7 +348,8 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 816.8,
+      "judge_ms": 772.4,
+      "judge_error": null,
       "judge_reason": "The passages describe cooking pork steaks on a stovetop or tenderloin in an oven, but none provide instructions for cooking pork loin steaks specifically in an oven."
     },
     {
@@ -347,11 +359,12 @@
       "cosine_sufficient": true,
       "cosine_top": 0.9094,
       "judge_sufficient": true,
-      "judge_confidence": 0.0,
-      "judge_available": false,
+      "judge_confidence": 1.0,
+      "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 36175.5,
-      "judge_reason": ""
+      "judge_ms": 16566.3,
+      "judge_error": null,
+      "judge_reason": "Passage p1 defines psyllium husk powder, and passage p4 states that psyllium husk can be sold as powder."
     },
     {
       "lang": "hi",
@@ -363,7 +376,8 @@
       "judge_confidence": 0.0,
       "judge_available": false,
       "judge_downgraded": false,
-      "judge_ms": 13851.1,
+      "judge_ms": 20570.5,
+      "judge_error": "LLMTransient: model returned no content (finish_reason='length', reasoning_content=6027 chars). If finish_reason is 'length', raise max_tokens -- this is a reasoning model and the budget was consumed before it produced an answer.",
       "judge_reason": ""
     },
     {
@@ -373,11 +387,12 @@
       "cosine_sufficient": true,
       "cosine_top": 0.9135,
       "judge_sufficient": false,
-      "judge_confidence": 1.0,
+      "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 12048.3,
-      "judge_reason": "The passages define a 'confidence man' (a con man), not a 'confident person'."
+      "judge_ms": 19274.9,
+      "judge_error": null,
+      "judge_reason": "ये अनुच्छेद 'विश्वासी व्यक्ति' (trusting person) को परिभाषित करते हैं, न कि 'आत्मविश्वासी व्यक्ति' (confident person) को।"
     },
     {
       "lang": "hi",
@@ -385,12 +400,13 @@
       "is_answerable": true,
       "cosine_sufficient": true,
       "cosine_top": 0.8906,
-      "judge_sufficient": true,
-      "judge_confidence": 1.0,
+      "judge_sufficient": false,
+      "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 11637.7,
-      "judge_reason": "Passage p1 explicitly states the names of Dale Earnhardt's sisters as K and Kathy."
+      "judge_ms": 33874.6,
+      "judge_error": null,
+      "judge_reason": "The passages mention Dale Earnhardt's sisters as 'K and Kathy' but do not provide their full names."
     },
     {
       "lang": "hi",
@@ -402,7 +418,8 @@
       "judge_confidence": 0.0,
       "judge_available": false,
       "judge_downgraded": false,
-      "judge_ms": 16589.6,
+      "judge_ms": 18457.3,
+      "judge_error": "LLMTransient: model returned no content (finish_reason='length', reasoning_content=5693 chars). If finish_reason is 'length', raise max_tokens -- this is a reasoning model and the budget was consumed before it produced an answer.",
       "judge_reason": ""
     },
     {
@@ -415,8 +432,9 @@
       "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 50003.9,
-      "judge_reason": "Passages describe the initial step of forming the yellow cross, not the final step to solve it."
+      "judge_ms": 69700.9,
+      "judge_error": null,
+      "judge_reason": "The passages describe how to form the yellow cross, not the final step to solve it."
     },
     {
       "lang": "hi",
@@ -424,12 +442,13 @@
       "is_answerable": false,
       "cosine_sufficient": true,
       "cosine_top": 0.8746,
-      "judge_sufficient": false,
-      "judge_confidence": 0.9,
+      "judge_sufficient": true,
+      "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 596.3,
-      "judge_reason": "The passages state that Edith Kermit Carow Roosevelt was the First Lady of the United States, but do not specify what she is famous for beyond this role."
+      "judge_ms": 13406.6,
+      "judge_error": null,
+      "judge_reason": "The passages state that she was the First Lady of the United States."
     },
     {
       "lang": "hi",
@@ -441,8 +460,9 @@
       "judge_confidence": 0.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 778.5,
-      "judge_reason": "The passages discuss startup costs and deductions but do not specify what is considered an initial cost for tax deduction."
+      "judge_ms": 889.7,
+      "judge_error": null,
+      "judge_reason": "The passages discuss initial expenses and deductions but do not specify what is considered an initial cost for tax deduction."
     },
     {
       "lang": "hi",
@@ -451,10 +471,11 @@
       "cosine_sufficient": false,
       "cosine_top": 0.8651,
       "judge_sufficient": false,
-      "judge_confidence": 1.0,
+      "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 812.5,
+      "judge_ms": 685.5,
+      "judge_error": null,
       "judge_reason": "The passages discuss Chevy Chase, Maryland, but do not mention 'Chestville Chase-Maryland TSM'."
     },
     {
@@ -467,8 +488,9 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 509.7,
-      "judge_reason": "The passages describe cooking pork steaks on a stovetop or in an oven, but none of them provide a complete recipe for cooking pork loin steaks specifically in an oven."
+      "judge_ms": 793.4,
+      "judge_error": null,
+      "judge_reason": "The passages describe pan-frying and oven-roasting methods for pork, but none specifically detail how to cook pork loin steaks in an oven."
     },
     {
       "lang": "mr",
@@ -480,8 +502,9 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 779.9,
-      "judge_reason": "The passages discuss Nutri Slim powder and psyllium husk powder, but none of them define what 'कोळसा पावडर सायलियम' (coal powder psyllium) is."
+      "judge_ms": 889.8,
+      "judge_error": null,
+      "judge_reason": "The passages do not contain any information about 'कोळसा पावडर सायलियम' (coal powder psyllium)."
     },
     {
       "lang": "mr",
@@ -490,11 +513,12 @@
       "cosine_sufficient": true,
       "cosine_top": 0.9017,
       "judge_sufficient": true,
-      "judge_confidence": 1.0,
-      "judge_available": true,
+      "judge_confidence": 0.0,
+      "judge_available": false,
       "judge_downgraded": false,
-      "judge_ms": 17508.4,
-      "judge_reason": "The passages define CalWorks eligibility as meeting rules about family situation, resources, and income, including specific requirements like citizenship and income limits."
+      "judge_ms": 17125.1,
+      "judge_error": "LLMTransient: model returned no content (finish_reason='length', reasoning_content=6149 chars). If finish_reason is 'length', raise max_tokens -- this is a reasoning model and the budget was consumed before it produced an answer.",
+      "judge_reason": ""
     },
     {
       "lang": "mr",
@@ -503,11 +527,12 @@
       "cosine_sufficient": true,
       "cosine_top": 0.8906,
       "judge_sufficient": false,
-      "judge_confidence": 0.9,
+      "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 695.1,
-      "judge_reason": "The passages define a 'confidence man' (विश्वासू माणूस), not a 'confident person' (आत्मविश्वासी माणूस), and do not provide the requested definition."
+      "judge_ms": 53752.4,
+      "judge_error": null,
+      "judge_reason": "The passages define a 'trustworthy person' (विश्वासू माणूस), not a 'confident person' (आत्मविश्वासी माणूस)."
     },
     {
       "lang": "mr",
@@ -515,12 +540,13 @@
       "is_answerable": true,
       "cosine_sufficient": true,
       "cosine_top": 0.8961,
-      "judge_sufficient": false,
-      "judge_confidence": 0.9,
+      "judge_sufficient": true,
+      "judge_confidence": 1.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 807.5,
-      "judge_reason": "The passages mention Dale Earnhardt's sisters as 'K and Kathy' in p1, but do not provide their full names."
+      "judge_ms": 15771.0,
+      "judge_error": null,
+      "judge_reason": "Passage p1 explicitly states the names of Dale Earnhardt's sisters are K and Kathy."
     },
     {
       "lang": "mr",
@@ -532,7 +558,8 @@
       "judge_confidence": 0.0,
       "judge_available": false,
       "judge_downgraded": false,
-      "judge_ms": 60977.3,
+      "judge_ms": 17827.3,
+      "judge_error": "LLMTransient: model returned no content (finish_reason='length', reasoning_content=5692 chars). If finish_reason is 'length', raise max_tokens -- this is a reasoning model and the budget was consumed before it produced an answer.",
       "judge_reason": ""
     },
     {
@@ -545,7 +572,8 @@
       "judge_confidence": 0.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 776.8,
+      "judge_ms": 645.6,
+      "judge_error": null,
       "judge_reason": "The passages do not contain any information about the final step of solving a cube with a yellow cross."
     },
     {
@@ -558,7 +586,8 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 949.8,
+      "judge_ms": 955.1,
+      "judge_error": null,
       "judge_reason": "The passages provide biographical details about Edith Kermit Carow Roosevelt but do not state what she is famous for."
     },
     {
@@ -571,8 +600,9 @@
       "judge_confidence": 0.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 1223.1,
-      "judge_reason": "The passages discuss business startup costs and deductions but do not state what the specific cost to start deducting taxes is."
+      "judge_ms": 1010.3,
+      "judge_error": null,
+      "judge_reason": "The passages discuss business startup costs and deductions but do not state whether the cost of starting a tax deduction is considered a startup cost."
     },
     {
       "lang": "mr",
@@ -581,10 +611,11 @@
       "cosine_sufficient": false,
       "cosine_top": 0.8693,
       "judge_sufficient": false,
-      "judge_confidence": 0.9,
+      "judge_confidence": 0.0,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 596.4,
+      "judge_ms": 738.9,
+      "judge_error": null,
       "judge_reason": "The passages do not contain any information about 'chesvity chasemaryland tsm'."
     },
     {
@@ -597,13 +628,14 @@
       "judge_confidence": 0.9,
       "judge_available": true,
       "judge_downgraded": false,
-      "judge_ms": 968.7,
-      "judge_reason": "The passages do not contain any information about cooking pork loin steak in an oven."
+      "judge_ms": 8808.8,
+      "judge_error": null,
+      "judge_reason": "The passages do not contain any information about cooking pork loin steaks in an oven."
     }
   ],
   "winner_per_language": [
     "C",
     "C",
-    "A"
+    "C"
   ]
 }

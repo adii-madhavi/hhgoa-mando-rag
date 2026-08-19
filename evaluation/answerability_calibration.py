@@ -52,7 +52,9 @@ import json
 import os
 import random
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -131,10 +133,16 @@ def main() -> None:
     ap.add_argument("--top-k", type=int, default=5)
     ap.add_argument("--seed", type=int, default=41)
     ap.add_argument("--model", default=None, help="override LLM_MODEL")
+    ap.add_argument("--concurrency", type=int, default=8,
+                    help="parallel judge calls; judge latency is network-bound")
+    ap.add_argument("--timeout", type=float, default=60.0,
+                    help="per-call LLM timeout (s). Smoke showed p100 50-61s "
+                         "on Hindi, so 20s truncated slow calls into false "
+                         "unavailable verdicts.")
     ap.add_argument("--out", default="experiments/answerability_calibration.json")
     args = ap.parse_args()
 
-    client = ChatClient(model=args.model, timeout_s=20.0)
+    client = ChatClient(model=args.model, timeout_s=args.timeout)
     if not client.available:
         raise SystemExit(
             "\nNo LLM key configured, so systems B and C cannot be measured.\n"
@@ -162,6 +170,7 @@ def main() -> None:
         "config": {
             "llm_model": client.model, "base_url": client.base_url,
             "top_k": args.top_k, "n_per_class": args.n_per_class,
+            "concurrency": args.concurrency, "timeout_s": args.timeout,
             "cosine_thresholds": thresholds,
             "index": loaded.manifest,
         },
@@ -191,30 +200,70 @@ def main() -> None:
         A, B, C = Counts(), Counts(), Counts()
         t_lang = time.perf_counter()
 
-        for idx, (q, is_pos) in enumerate(
-                [(q, True) for q in pos] + [(q, False) for q in neg], 1):
+        # METHODOLOGY FIX: shuffle the two classes together.
+        # The first full run processed all positives then all negatives.
+        # Rate-limit failures accumulated over the run and therefore landed
+        # almost entirely in the back half -- for English, 41 of 41 failures
+        # hit negatives. Because an unavailable verdict fails OPEN, each one
+        # was scored as a false answer, and B's English false-answer rate was
+        # inflated 0.20 -> 0.53 purely by call ORDER. Interleaving makes any
+        # residual failure rate class-independent.
+        items = [(q, True) for q in pos] + [(q, False) for q in neg]
+        random.Random(args.seed + 1).shuffle(items)
+
+        # -- stage 1: retrieval + cosine, SERIAL ---------------------------
+        # Deliberately not threaded. Retrieval is a numpy matmul against a
+        # 72k x 384 matrix and reranking touches torch; putting those on a
+        # thread pool contends for the GIL and for BLAS threads, slowing the
+        # CPU work when the NETWORK calls are what actually need parallelism.
+        # ~20 ms each, so serial costs nothing.
+        prepared = []
+        for q, is_pos in items:
             text = q["queries"].get(lang)
             if not text:
                 continue
-
             cands, _ = loaded.retriever.retrieve(
                 text, top_k=args.top_k, candidate_k=CONFIG.candidate_k,
                 use_dense=True, use_bm25=CONFIG.use_bm25)
             cands, _ = reranker.rerank(text, cands, top_k=args.top_k)
-
-            # --- A: cosine only ------------------------------------------
             cosine = assess_evidence(cands, thresholds)
+            prepared.append((q, is_pos, text,
+                             [c.context for c in cands], cosine))
+
+        # -- stage 2: judge calls, CONCURRENT ------------------------------
+        # Network-bound, 1-12 s each. httpx.Client is thread-safe for
+        # concurrent requests and tenacity still applies per call.
+        done = {"n": 0}
+        lock = threading.Lock()
+
+        def run_judge(pair):
+            i, (q, is_pos, text, contexts, cosine) = pair
+            v = judge.judge(text, contexts, lang)
+            with lock:
+                done["n"] += 1
+                if done["n"] % 25 == 0:
+                    print(f"    {done['n']}/{len(prepared)} judged...",
+                          flush=True)
+            return i, v
+
+        verdicts = [None] * len(prepared)
+        with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+            for i, v in pool.map(run_judge, list(enumerate(prepared))):
+                verdicts[i] = v
+
+        # -- stage 3: score in the ORIGINAL order --------------------------
+        # Reassembled by index so concurrency cannot reorder results and make
+        # the run non-reproducible.
+        for (q, is_pos, text, contexts, cosine), verdict in zip(prepared,
+                                                                verdicts):
             A.add(cosine.sufficient, is_pos)
 
-            # --- B: judge only -------------------------------------------
-            verdict = judge.judge(text, [c.context for c in cands], lang)
             B.add(verdict.sufficient, is_pos)
             B.judge_ms.append(verdict.latency_ms)
             B.unavailable += not verdict.available
             B.downgraded += verdict.downgraded
             B.invalid_citations += bool(verdict.invalid_ids)
 
-            # --- C: cosine AND judge -------------------------------------
             C.add(cosine.sufficient and verdict.sufficient, is_pos)
 
             report["per_query"].append({
@@ -227,13 +276,19 @@ def main() -> None:
                 "judge_available": verdict.available,
                 "judge_downgraded": verdict.downgraded,
                 "judge_ms": round(verdict.latency_ms, 1),
+                "judge_error": verdict.error,
                 "judge_reason": verdict.reason[:200],
             })
 
-            if idx % 25 == 0:
-                print(f"    {idx} queries...", flush=True)
+        fail_rate = B.unavailable / max(len(prepared), 1)
+        if fail_rate > 0.02:
+            print(f"  !! {B.unavailable}/{len(prepared)} judge calls FAILED "
+                  f"({fail_rate:.1%}). Failed calls fail OPEN and are scored "
+                  f"as 'answered', so B and C are NOT trustworthy above ~2%.")
 
         report["per_language"][lang] = {
+            "judge_failure_rate": round(fail_rate, 4),
+            "results_trustworthy": bool(fail_rate <= 0.02),
             "A_cosine_only": A.metrics(),
             "B_judge_only": B.metrics(),
             "C_cosine_and_judge": C.metrics(),
