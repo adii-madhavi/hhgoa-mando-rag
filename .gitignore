@@ -12,3 +12,4 @@ data/*.json
 .pytest_cache/
 .DS_Store
 COMMITMSG.tmp
+CM.tmp

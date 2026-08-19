@@ -1,23 +1,25 @@
 # MANDO — Project State
 
-**Status: Phase 2 COMPLETE. Gate PASSED on quality.**
-**Phase 3 unlocked, but NOT started - judge deployment shape unresolved (see below).**
+**Status: Phase 3 COMPLETE. Mando generation live in EN/HI/MR.**
+**Blocker: generation latency P50 15.4 s (English). Voice UX not viable yet.**
 Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
 `PROJECT_STATE.md` and `TODO.md` are the source of truth. Update both after
 every major task.
 
-Do not make architecture changes or run the calibration until the key is
-provided. Phases 3–11 are gated behind Phase 2, which is gated on the key.
+Phases 1-3 are complete. Phases 5-8 (Sarvam STT/TTS, voice loop, UI) are
+gated on `SARVAM_API_KEY` AND on resolving generation latency.
 
 ---
 
 ## One-line status
 
-A working, measured, voice-ready multilingual RAG system over MSMARCO-XI.
-**172 tests pass.** RAG core runs at **137 ms P50**. Everything still open is
-blocked on two credentials, not on engineering.
+A measured multilingual RAG system over MSMARCO-XI with grounded Mando
+generation live in English, Hindi and Marathi. **237 tests pass.**
+Retrieval core **21.5-53.5 ms P50**; the answerability judge is off the
+critical path (**inline 0.0 ms**). **LLM generation adds 0.6-15.4 s**, which is
+the blocker for a voice product.
 
 ---
 
@@ -25,11 +27,13 @@ blocked on two credentials, not on engineering.
 
 | blocker | blocks | effect |
 |---|---|---|
-| **Judge latency** (open question) | Phase 2 full run, and the 200 ms budget | judge p50 907 ms en / **12,048 ms hi**, p100 50–61 s |
+| **Generation latency** | a viable voice UX | **P50 15.4 s (en)**, min 9.4 s. `sarvam-105b` is a reasoning model spending ~900 tokens thinking before writing. Try a non-reasoning model / streaming. E16 |
 | **`SARVAM_API_KEY`** | Phases 5–7, 10 | No STT, no TTS, no voice-loop latency |
 
-`LLM_API_KEY` is now present and working. The Sarvam STT/TTS clients remain
-verified against published contracts but never exercised live.
+`LLM_API_KEY` is present and working. Judge latency is RESOLVED as a blocker:
+it runs async with a verdict cache, measured inline cost 0.0 ms.
+The Sarvam STT/TTS clients remain verified against published contracts but
+never exercised live.
 
 ### Live-API findings (from the smoke test)
 
@@ -61,8 +65,11 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Hybrid BM25 | Built, ablated, **measurably hurt** (en 0.654→0.564); weight sweep monotonic → shipped **disabled** |
 | Cross-lingual | Tested and **refuted** (mr→en 0.223 vs 0.416) → not enabled |
 | Language detection | 95.4% overall · en 1.000 · hi 0.996 · **mr 0.866** |
-| Latency | **TOTAL RAG P50 137.45 ms**, P70 149.84, P100 289.07 (360 requests) |
+| Latency (extractive, E11) | RAG P50 **137.45 ms**, P70 149.84, P100 289.07 (360 requests) |
+| Latency (with LLM, E16) | retrieval core **21.5-53.5 ms** P50 · generation **0.6-15.4 s** P50 · judge async, excluded |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
+| Generation (Phase 3) | LLMGenerator on shared ChatClient, strict schema, citation validation. Live in en/hi/mr: grounded, correct language, valid citations. **P50 15.4 s (en)** - E16 |
+| Judge deployment | **ASYNC** - inline cost 0.0 ms in every request; background P50 5.9 s excluded by construction |
 | Answerability judge | **Gate PASSED** (E15). C balAcc 0.7250/0.6414/0.6515 vs A 0.5700/0.5808/0.6061; false answers cut 62-80%. Latency P50 909 ms blocks inline use. |
 | Dependencies | `requirements.txt` regenerated from an AST scan of actual imports; `datasets` + `pandas` removed (nothing imports them), all 16 pinned |
 

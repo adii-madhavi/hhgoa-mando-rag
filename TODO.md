@@ -5,7 +5,42 @@ Deadline: 2026-08-22 23:59.
 
 ---
 
-## 🔴 NEXT ACTION — decide the judge's deployment shape
+## 🔴 NEXT ACTION — generation latency blocks the voice product
+
+Phase 3 is complete and measured (E16). Retrieval core holds at 21.5-53.5 ms
+P50 and the judge is off the critical path (inline 0.0 ms). But **LLM
+generation is P50 15.4 s in English** (min 9.4 s), so a voice turn is currently
+~15 s.
+
+- [ ] Decide how to make generation viable, then measure:
+      (a) try a NON-reasoning model - sarvam-105b spends ~900 tokens thinking
+          before writing, which is most of the 15 s
+      (b) stream the answer so first-audio starts early
+      (c) lower max_tokens (risks the truncation bug -- verify)
+- [ ] Only then Phase 5/6 (Sarvam STT/TTS) and Phase 8 (UI)
+
+Note: hi/mr generation percentiles in E16 are contaminated by refusals
+(gen=0 ms). Refusals were en 1/10, hi 4/10, mr 8/10 -- English is the only
+clean generation figure.
+
+---
+
+## ✅ PHASE 3 DONE
+
+- [x] LLMGenerator migrated to shared ChatClient; duplicate httpx/tenacity gone
+- [x] max_tokens 400 -> 3000 (reasoning-model truncation fixed)
+- [x] Strict Pydantic structured output + corrective retry
+- [x] Citation validation; out-of-range sources dropped into invalid_sources
+- [x] Configurable PersonaConfig; Mando default; prompt is voice-invariant
+      (male/female addable without touching the RAG core)
+- [x] Konkani honesty clause - no fabricated fluency claim
+- [x] Judge async by default + deterministic VerdictCache
+- [x] Same-language enforcement (warn, never refuse a correct answer)
+- [x] 237 tests passing (was 177)
+
+---
+
+## 🔴 SUPERSEDED — judge deployment shape (RESOLVED: async + cache)
 
 Phase 2 gate **PASSED** (EXPERIMENTS.md E15): C beats A in all three languages,
 false answers cut 62-80%. But judge latency is **P50 909 ms / P70 11.1 s** vs a

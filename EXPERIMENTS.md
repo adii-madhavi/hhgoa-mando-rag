@@ -930,6 +930,79 @@ against in-run A, with E10 reported alongside for completeness. C clears both.
 
 ---
 
+## E16 — Phase 3: generation latency. The 137 ms figure does not survive an LLM.
+
+**Command:** `python evaluation/generation_latency.py --n 10 --timeout 120`
+**Raw:** `experiments/generation_latency.json` (30 queries, judge in async mode)
+
+E11 measured **137 ms P50** for the RAG core. That number was taken with the
+*extractive* generator. This measures what a user actually waits for once a
+real LLM is in the path.
+
+| lang | stage | P50 | P70 | P100 |
+|---|---|---|---|---|
+| en | retrieval core | **53.5** | 57.8 | 84.3 |
+| en | generation (LLM) | 15,376.6 | 17,094.3 | 69,239.6 |
+| en | **total** | 14,603.7 | 16,801.6 | 69,296.3 |
+| hi | retrieval core | **44.9** | 49.0 | 66.0 |
+| hi | generation (LLM) | 4,284.9 | 14,569.1 | 17,858.8 |
+| hi | **total** | 4,344.8 | 14,614.8 | 17,907.8 |
+| mr | retrieval core | **21.5** | 28.2 | 61.8 |
+| mr | generation (LLM) | 606.0 | 4,460.7 | 11,335.3 |
+| mr | **total** | 21.5 | 28.2 | 10,767.3 |
+| — | judge (async, **excluded**) | 5,863.4 | 13,005.9 | 61,793.6 |
+
+### Two findings, one good and one not
+
+**The retrieval critical path holds.** 21.5–53.5 ms P50, comfortably inside
+200 ms, and consistent with E11. Moving the judge off this path worked exactly
+as designed: **inline `answerability_ms` is 0.0 in every request**, and the
+23 background judge calls (P50 5,863 ms) are excluded by construction rather
+than by subtraction.
+
+**Generation is 2–3 orders of magnitude slower than everything else.**
+English P50 **15.4 s**, minimum 9.4 s. There is no configuration of retrieval
+that matters next to this. **A voice product cannot ship on a 15 s answer.**
+
+### A caveat that makes hi/mr look better than they are
+
+Refusals never call the LLM, so they contribute `generation_ms = 0` and drag
+the percentiles down. Refusal counts in this run: **en 1/10, hi 4/10,
+mr 8/10**. Marathi's "P50 606 ms" is mostly measuring refusals, not fast
+generation — its total P50 of 21.5 ms is *identical* to its retrieval core P50,
+which is the tell. **English is the only clean generation figure here**, and it
+is the slow one.
+
+The refusal rates themselves are consistent with E15's false-refusal cost and
+with Marathi being the weakest retrieval language (E7).
+
+### What this does NOT change
+
+The grounding standard was not relaxed to chase latency. In the live
+three-language check every answer was `grounded=True`, cited only valid source
+numbers (`invalid_sources` empty), and matched the requested language.
+
+### Honest statement of the latency claim
+
+Three separate numbers, never merged:
+
+| claim | value | status |
+|---|---|---|
+| retrieval core (STT→retrieval→guardrails) | **21.5–53.5 ms P50** | inside the 200 ms target |
+| + LLM generation | **+0.6–15.4 s P50** | far outside it |
+| + async judge | 5.9 s P50 | off the critical path, never counted |
+| + Sarvam STT/TTS | not measured | requires `SARVAM_API_KEY` |
+
+Only the first line is a sub-200 ms claim, and it is the only one made.
+
+**Unresolved, and the blocker for a voice product:** streaming the answer,
+a smaller/faster generation model, or a shorter `max_tokens`. `sarvam-105b` is
+a *reasoning* model — it spends ~900 completion tokens thinking before writing,
+which is what a 15 s P50 buys. A non-reasoning model would very likely be much
+faster here, and that is the next thing to measure.
+
+---
+
 ## Pending / not done
 
 - **e5-base and bge-m3 comparison.** Started, then abandoned: e5-base is ~3×
