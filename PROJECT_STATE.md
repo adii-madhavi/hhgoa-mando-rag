@@ -17,9 +17,10 @@ gated on `SARVAM_API_KEY` AND on resolving generation latency.
 
 A measured multilingual RAG system over MSMARCO-XI with grounded Mando
 generation live in English, Hindi and Marathi. **237 tests pass.**
-Retrieval core **21.5-53.5 ms P50**; the answerability judge is off the
-critical path (**inline 0.0 ms**). **LLM generation adds 0.6-15.4 s**, which is
-the blocker for a voice product.
+Retrieval core **22-50 ms P50**; the answerability judge is off the critical
+path (**inline 0.0 ms**). LLM generation adds **~4.3 s P50** after the E17
+model switch — median fixed, but the **tail (P100 65 s)** is the open blocker
+for a voice product.
 
 ---
 
@@ -45,9 +46,10 @@ never exercised live.
    misleading "schema failure". At 1500 it used 901 tokens and returned valid
    JSON. Judge budget raised to 1500; `content=None` now raises a diagnosable
    error naming `max_tokens`. Regression-tested.
-3. **Judge latency is the open problem.** ~900 ms typical, but Hindi p50 is
-   12 s and some calls exceed the 20 s timeout. Needs a decision before the
-   600-call run: raise timeout, add concurrency, or accept the cost.
+3. **Judge latency — RESOLVED.** Runs async behind a verdict cache; measured
+   inline cost is 0.0 ms in every request (E16).
+4. **`sarvam-105b-conversations` is non-reasoning** and 3.6x faster with
+   quality held. Now the default (E17).
 
 ---
 
@@ -69,7 +71,7 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Latency (with LLM, E16/E17) | retrieval core **22-50 ms** P50 · generation **4.3 s** P50 (en, after model switch) · judge async, excluded |
 | Generation model | **sarvam-105b-conversations** (non-reasoning). 3.6x faster than sarvam-105b with quality held: grounded 0.86-0.88, correct language, valid citations - E17 |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
-| Generation (Phase 3) | LLMGenerator on shared ChatClient, strict schema, citation validation. Live in en/hi/mr: grounded, correct language, valid citations. **P50 15.4 s (en)** - E16 |
+| Generation (Phase 3) | LLMGenerator on shared ChatClient, strict schema, citation validation. Live in en/hi/mr: grounded, correct language, valid citations |
 | Judge deployment | **ASYNC** - inline cost 0.0 ms in every request; background P50 5.9 s excluded by construction |
 | Answerability judge | **Gate PASSED** (E15). C balAcc 0.7250/0.6414/0.6515 vs A 0.5700/0.5808/0.6061; false answers cut 62-80%. Latency P50 909 ms blocks inline use. |
 | Dependencies | `requirements.txt` regenerated from an AST scan of actual imports; `datasets` + `pandas` removed (nothing imports them), all 16 pinned |
