@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+data/raw/
+data/processed/
+data/index/
+data/qdrant/
+data/*.json
+*.parquet
+*.npy
+.pytest_cache/
+.DS_Store

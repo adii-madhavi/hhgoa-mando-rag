@@ -1,0 +1,31 @@
+# Core data / ingestion
+datasets>=4.0
+pyarrow>=17
+pandas
+numpy
+
+# Embeddings & models
+sentence-transformers>=3.0
+torch
+transformers
+
+# Retrieval
+qdrant-client>=1.16
+rank-bm25
+# regex (NOT the stdlib `re`) is REQUIRED, not optional: Python's re excludes
+# Unicode combining marks from \w, which shatters Devanagari tokens and
+# silently breaks Hindi/Marathi BM25. See EXPERIMENTS.md E4.
+regex
+
+# API
+fastapi
+uvicorn[standard]
+pydantic>=2
+
+# Clients / infra
+httpx
+tenacity
+python-dotenv
+
+# Tests
+pytest

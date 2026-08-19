@@ -1,0 +1,205 @@
+{
+  "n_queries": 2000,
+  "n_cases": 6000,
+  "per_language": {
+    "en": {
+      "accuracy": 1.0,
+      "confusion": {
+        "en": 2000
+      },
+      "methods": {
+        "script:latin": 2000
+      },
+      "low_confidence": 0,
+      "error_samples": []
+    },
+    "hi": {
+      "accuracy": 0.9955,
+      "confusion": {
+        "hi": 1991,
+        "mr": 8,
+        "en": 1
+      },
+      "methods": {
+        "markers": 1820,
+        "devanagari:ambiguous": 153,
+        "markers:tie": 26,
+        "script:latin": 1
+      },
+      "low_confidence": 153,
+      "error_samples": [
+        {
+          "text": "किंवा",
+          "predicted": "mr",
+          "confidence": 1.0,
+          "method": "markers",
+          "scores": {
+            "mr_markers": 1,
+            "mr_suffixes": 0,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 5,
+            "latin": 0
+          }
+        },
+        {
+          "text": "जीनस प्रजाति दूध वाला सांप",
+          "predicted": "mr",
+          "confidence": 1.0,
+          "method": "markers",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 1,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 22,
+            "latin": 0
+          }
+        },
+        {
+          "text": "अनुमान लगाने का अर्थ",
+          "predicted": "mr",
+          "confidence": 1.0,
+          "method": "markers",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 1,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 17,
+            "latin": 0
+          }
+        },
+        {
+          "text": "ज्यामिति, पर्यायवाची शब्द",
+          "predicted": "mr",
+          "confidence": 1.0,
+          "method": "markers",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 1,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 22,
+            "latin": 0
+          }
+        },
+        {
+          "text": "एफ.एक्स. विश्व प्रसारण कार्यक्रम का प्रीमियर अनुसूची",
+          "predicted": "mr",
+          "confidence": 1.0,
+          "method": "markers",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 1,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 44,
+            "latin": 0
+          }
+        }
+      ]
+    },
+    "mr": {
+      "accuracy": 0.866,
+      "confusion": {
+        "mr": 1732,
+        "hi": 268
+      },
+      "methods": {
+        "markers": 1778,
+        "devanagari:ambiguous": 165,
+        "markers:tie": 57
+      },
+      "low_confidence": 165,
+      "error_samples": [
+        {
+          "text": "स्टबहब टोल फ्री नंबर",
+          "predicted": "hi",
+          "confidence": 0.34,
+          "method": "devanagari:ambiguous",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 0,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 17,
+            "latin": 0
+          }
+        },
+        {
+          "text": "रॉब्लॉक्समध्ये पॉवर रेंजर इव्हेंट होता का?",
+          "predicted": "hi",
+          "confidence": 1.0,
+          "method": "markers",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 0,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 3,
+            "devanagari": 36,
+            "latin": 0
+          }
+        },
+        {
+          "text": "मूलगामी मान",
+          "predicted": "hi",
+          "confidence": 0.34,
+          "method": "devanagari:ambiguous",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 0,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 10,
+            "latin": 0
+          }
+        },
+        {
+          "text": "स्वाक्षरीकृत तरतूद रद्द करता येईल का?",
+          "predicted": "hi",
+          "confidence": 0.34,
+          "method": "devanagari:ambiguous",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 0,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 0,
+            "devanagari": 31,
+            "latin": 0
+          }
+        },
+        {
+          "text": "मूलतत्त्वांची एंट्रॉपी",
+          "predicted": "hi",
+          "confidence": 0.5,
+          "method": "markers:tie",
+          "scores": {
+            "mr_markers": 0,
+            "mr_suffixes": 1,
+            "mr_chars": 0,
+            "hi_markers": 0,
+            "hi_chars": 1,
+            "devanagari": 21,
+            "latin": 0
+          }
+        }
+      ]
+    }
+  },
+  "latency_ms": {
+    "p50": 0.016,
+    "p100": 2.9943,
+    "mean": 0.018
+  },
+  "overall_accuracy": 0.9538
+}

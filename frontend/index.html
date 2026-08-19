@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MANDO — Your Goan AI Guide</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161d26; --panel-2:#1d2732; --line:#2a3644;
+    --text:#e8eef5; --muted:#8fa3b8; --accent:#ff9d4d; --accent-2:#4dd0c7;
+    --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.55 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+       display:flex;justify-content:center;padding:24px 16px}
+  .wrap{width:100%;max-width:980px;display:grid;gap:18px;
+        grid-template-columns:minmax(0,1fr) minmax(0,360px)}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);
+        border-radius:14px;padding:20px}
+  h1{margin:0;font-size:26px;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .hero{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .avatar{width:72px;height:72px;border-radius:50%;flex:none;
+    background:radial-gradient(circle at 35% 30%,#ffb877,#e8873a);
+    display:grid;place-items:center;font-size:34px;
+    transition:transform .25s, box-shadow .25s}
+  .avatar.listening{box-shadow:0 0 0 6px rgba(77,208,199,.22);
+                    transform:scale(1.06)}
+  .avatar.thinking{box-shadow:0 0 0 6px rgba(251,191,36,.22)}
+  .avatar.speaking{box-shadow:0 0 0 6px rgba(74,222,128,.22)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+  select,input[type=text]{background:var(--panel-2);color:var(--text);
+    border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+    font-size:14px;font-family:inherit}
+  input[type=text]{flex:1;min-width:200px}
+  button{border:0;border-radius:9px;padding:11px 16px;font-size:14px;
+    font-weight:600;cursor:pointer;font-family:inherit}
+  .primary{background:var(--accent);color:#20130a}
+  .ghost{background:var(--panel-2);color:var(--text);border:1px solid var(--line)}
+  .talk{width:100%;padding:16px;margin-top:14px;font-size:16px;
+        background:var(--accent-2);color:#06231f;user-select:none}
+  .talk.rec{background:var(--bad);color:#2a0b0b}
+  .talk:disabled{opacity:.45;cursor:not-allowed}
+  .bubble{margin-top:16px;background:var(--panel-2);border:1px solid var(--line);
+          border-left:3px solid var(--accent);border-radius:10px;padding:14px}
+  .bubble.refused{border-left-color:var(--warn)}
+  .bubble.error{border-left-color:var(--bad)}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;
+       background:var(--panel);border:1px solid var(--line);color:var(--muted);
+       margin-right:6px}
+  .tag.ok{color:var(--ok);border-color:#1f4d33}
+  .tag.warn{color:var(--warn);border-color:#4d411f}
+  .tag.bad{color:var(--bad);border-color:#4d1f1f}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  td{padding:5px 0;border-bottom:1px solid var(--line)}
+  td:last-child{text-align:right;font-variant-numeric:tabular-nums;
+                color:var(--accent-2)}
+  tr.total td{font-weight:700;color:var(--text);border-bottom:0;padding-top:9px}
+  .src{font-size:12.5px;color:var(--muted);padding:9px 0;
+       border-bottom:1px solid var(--line)}
+  .src b{color:var(--text);font-weight:600}
+  h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;
+     letter-spacing:1px;color:var(--muted)}
+  .banner{background:#2a2113;border:1px solid #4d411f;color:#f5d99b;
+          border-radius:10px;padding:11px 13px;font-size:13px;margin-bottom:14px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="card">
+      <div class="hero">
+        <div class="avatar" id="avatar">🙂</div>
+        <div>
+          <h1>MANDO</h1>
+          <div class="sub">Your Goan AI guide · English · हिंदी · मराठी</div>
+        </div>
+      </div>
+
+      <div class="banner hidden" id="banner"></div>
+
+      <div class="row">
+        <div>
+          <label>Language</label>
+          <select id="lang">
+            <option value="auto">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="hi">हिंदी</option>
+            <option value="mr">मराठी</option>
+          </select>
+        </div>
+        <div>
+          <label>Voice</label>
+          <select id="voice">
+            <option value="male">Mando — male</option>
+            <option value="female">Mando — female</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="talk" id="talk">🎙 Hold to talk</button>
+
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="text" placeholder="…or type your question here">
+        <button class="primary" id="send">Ask</button>
+      </div>
+
+      <div id="out"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h3>Pipeline</h3>
+      <div id="debug" style="color:var(--muted);font-size:13px">
+        Ask something to see the stage breakdown.
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3>Sources</h3>
+      <div id="sources" style="color:var(--muted);font-size:13px">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+const $ = id => document.getElementById(id);
+const avatar = $("avatar");
+let recorder = null, chunks = [], canRecord = false;
+
+const setFace = (state, emoji) => { avatar.className = "avatar " + state;
+                                    avatar.textContent = emoji; };
+
+// ---- capability probe: never offer a control the backend cannot serve ----
+fetch(API + "/health").then(r => r.json()).then(h => {
+  const miss = h.missing_credentials || [];
+  canRecord = h.capabilities && h.capabilities.speech_to_text;
+  if (!canRecord) {
+    $("talk").disabled = true;
+    $("talk").textContent = "🎙 Voice disabled — no Sarvam key";
+  }
+  if (miss.length) {
+    $("banner").classList.remove("hidden");
+    $("banner").innerHTML = "Running with reduced capability — missing: <b>"
+      + miss.join("</b>, <b>") + "</b>."
+      + (h.capabilities && !h.capabilities.llm_generation
+         ? " Answers come from the grounded extractive fallback, so they are "
+           + "verbatim source text without Mando's voice."
+         : "");
+  }
+}).catch(() => {
+  $("banner").classList.remove("hidden");
+  $("banner").textContent = "Backend unreachable.";
+});
+
+// ---- push to talk --------------------------------------------------------
+async function startRec(){
+  if (!canRecord) return;
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recorder = new MediaRecorder(stream);
+    chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(chunks, {type:"audio/webm"});
+      const b64 = await new Promise(res => {
+        const fr = new FileReader();
+        fr.onloadend = () => res(fr.result.split(",")[1]);
+        fr.readAsDataURL(blob);
+      });
+      ask({audio_base64:b64});
+    };
+    recorder.start();
+    setFace("listening","👂");
+    $("talk").classList.add("rec");
+    $("talk").textContent = "● Listening — release to send";
+  }catch(e){ alert("Microphone unavailable: " + e.message); }
+}
+function stopRec(){
+  if (recorder && recorder.state === "recording") recorder.stop();
+  $("talk").classList.remove("rec");
+  $("talk").textContent = "🎙 Hold to talk";
+}
+const talk = $("talk");
+talk.addEventListener("mousedown", startRec);
+talk.addEventListener("mouseup", stopRec);
+talk.addEventListener("mouseleave", stopRec);
+talk.addEventListener("touchstart", e => { e.preventDefault(); startRec(); });
+talk.addEventListener("touchend", e => { e.preventDefault(); stopRec(); });
+
+$("send").onclick = () => {
+  const t = $("text").value.trim();
+  if (t) { ask({text:t}); $("text").value = ""; }
+};
+$("text").addEventListener("keydown", e => { if (e.key === "Enter") $("send").click(); });
+
+// ---- session memory: last 4 turns, client-side only ----------------------
+let history = [];
+
+async function ask(payload){
+  setFace("thinking","🤔");
+  $("debug").textContent = "Running…";
+  const body = Object.assign({
+    language: $("lang").value,
+    voice: $("voice").value,
+    character: "mando",
+    want_audio: true,
+    context: history.slice(-4)
+  }, payload);
+
+  try{
+    const r = await fetch(API + "/ask", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    render(d);
+  }catch(e){
+    setFace("","🙂");
+    $("out").innerHTML = '<div class="bubble error">Request failed: '
+      + e.message + "</div>";
+  }
+}
+
+function render(d){
+  const cls = d.refused ? "refused" : (d.ok ? "" : "error");
+  let tags = "";
+  if (d.language) tags += '<span class="tag">'
+    + {en:"English",hi:"हिंदी",mr:"मराठी"}[d.language] + "</span>";
+  if (d.refused) tags += '<span class="tag warn">refused: '
+    + d.refusal_reason + "</span>";
+  if (d.grounded === true) tags += '<span class="tag ok">grounded PASS</span>';
+  if (d.grounded === false) tags += '<span class="tag bad">grounded FAIL</span>';
+
+  $("out").innerHTML = '<div class="bubble ' + cls + '">' + tags
+    + (d.transcript ? '<div style="color:var(--muted);font-size:12.5px;'
+        + 'margin:8px 0">you said: “' + esc(d.transcript) + '”</div>' : "")
+    + "<div>" + esc(d.answer || "—") + "</div></div>";
+
+  if (d.ok && !d.refused && d.answer)
+    history.push({query: d.rewritten_query || d.transcript || "",
+                  answer: d.answer, lang: d.language});
+
+  // stage breakdown — the proof this is a real RAG pipeline
+  const L = d.latency || {};
+  const flat = {};
+  (L.stages || []).forEach(s => { flat[s.stage] = (flat[s.stage]||0) + s.ms; });
+  const rows = [
+    ["Speech-to-text","stt"], ["Language detect","language_detection"],
+    ["Input guardrail","input_guardrail"], ["Query rewrite","query_rewrite"],
+    ["Dense retrieval","dense_retrieval"], ["BM25 retrieval","bm25_retrieval"],
+    ["Fusion","fusion"], ["Reranking","rerank"],
+    ["Evidence check","evidence_check"], ["Generation","generation"],
+    ["Grounding","grounding"], ["Text-to-speech","tts"]
+  ].filter(([,k]) => flat[k] !== undefined)
+   .map(([label,k]) => "<tr><td>" + label + "</td><td>"
+        + flat[k].toFixed(1) + " ms</td></tr>").join("");
+
+  $("debug").innerHTML = "<table>" + rows
+    + '<tr class="total"><td>Total RAG</td><td>'
+    + (L.total_rag_ms||0).toFixed(1) + " ms</td></tr>"
+    + '<tr class="total"><td>End to end</td><td>'
+    + (L.end_to_end_ms||0).toFixed(1) + " ms</td></tr></table>"
+    + (d.retrieval_confidence !== null && d.retrieval_confidence !== undefined
+       ? '<div style="margin-top:9px;font-size:12px;color:var(--muted)">'
+         + "retrieval confidence " + d.retrieval_confidence
+         + (d.grounding_score ? " · grounding " + d.grounding_score : "")
+         + "</div>" : "")
+    + ((d.warnings||[]).length
+       ? '<div style="margin-top:8px;font-size:12px;color:var(--warn)">'
+         + d.warnings.map(esc).join("<br>") + "</div>" : "");
+
+  $("sources").innerHTML = (d.evidence||[]).length
+    ? d.evidence.map((e,i) => '<div class="src"><b>[' + (i+1) + "] "
+        + e.lang + " · q" + e.query_id + "/p" + e.passage_index + "</b><br>"
+        + esc((e.text||"").slice(0,170)) + "…</div>").join("")
+    : "—";
+
+  if (d.audio_base64){
+    setFace("speaking","🗣️");
+    const a = new Audio("data:audio/wav;base64," + d.audio_base64);
+    a.onended = () => setFace("","🙂");
+    a.play().catch(() => setFace("","🙂"));
+  } else {
+    setFace("","🙂");
+  }
+}
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+</script>
+</body>
+</html>

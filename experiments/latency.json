@@ -1,0 +1,649 @@
+{
+  "config": {
+    "index": {
+      "model": "e5-small",
+      "hf_id": "intfloat/multilingual-e5-small",
+      "dim": 384,
+      "strategy": "fixed",
+      "langs": [
+        "en",
+        "hi",
+        "mr"
+      ],
+      "n_passages": 59961,
+      "n_chunks": 72411,
+      "mean_chunk_chars": 278.3,
+      "offline_seconds": {
+        "chunking": 0.2,
+        "embedding": 1865.1,
+        "qdrant_upsert": null
+      },
+      "note": "offline build; not counted in runtime latency"
+    },
+    "reranker": "mmr",
+    "generator": "ExtractiveGenerator",
+    "top_k": 5,
+    "candidate_k": 50,
+    "use_bm25": false,
+    "stt_tts_enabled": false,
+    "n_per_language": 120,
+    "warmup_discarded": 3
+  },
+  "startup_seconds_excluded": 17.5,
+  "per_language": {
+    "en": {
+      "n": 120,
+      "refusal_rate": 0.0833,
+      "total_rag_ms": {
+        "measured": true,
+        "n": 120,
+        "p50": 128.0,
+        "p70": 138.15,
+        "p90": 154.29,
+        "p95": 164.05,
+        "p100": 225.73,
+        "mean": 122.0,
+        "min": 19.09,
+        "stdev": 36.68
+      },
+      "end_to_end_ms": {
+        "measured": true,
+        "n": 120,
+        "p50": 128.0,
+        "p70": 138.15,
+        "p90": 154.3,
+        "p95": 164.05,
+        "p100": 225.73,
+        "mean": 122.0,
+        "min": 19.09,
+        "stdev": 36.68
+      },
+      "stages": {
+        "validate": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.0,
+          "p70": 0.0,
+          "p90": 0.0,
+          "p95": 0.0,
+          "p100": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "stdev": 0.0
+        },
+        "stt": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "language_detection": {
+          "measured": true,
+          "n": 115,
+          "p50": 0.01,
+          "p70": 0.01,
+          "p90": 0.01,
+          "p95": 0.01,
+          "p100": 0.01,
+          "mean": 0.01,
+          "min": 0.01,
+          "stdev": 0.0
+        },
+        "input_guardrail": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.06,
+          "p70": 0.06,
+          "p90": 0.07,
+          "p95": 0.08,
+          "p100": 0.15,
+          "mean": 0.06,
+          "min": 0.04,
+          "stdev": 0.01
+        },
+        "query_rewrite": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "dense_retrieval": {
+          "measured": true,
+          "n": 120,
+          "p50": 19.75,
+          "p70": 20.32,
+          "p90": 21.78,
+          "p95": 23.46,
+          "p100": 25.3,
+          "mean": 20.12,
+          "min": 18.3,
+          "stdev": 1.36
+        },
+        "bm25_retrieval": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "fusion": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.02,
+          "p70": 0.02,
+          "p90": 0.02,
+          "p95": 0.02,
+          "p100": 0.03,
+          "mean": 0.02,
+          "min": 0.01,
+          "stdev": 0.01
+        },
+        "rerank": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.18,
+          "p70": 0.18,
+          "p90": 0.21,
+          "p95": 0.23,
+          "p100": 0.25,
+          "mean": 0.18,
+          "min": 0.13,
+          "stdev": 0.02
+        },
+        "evidence_check": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.02,
+          "p70": 0.02,
+          "p90": 0.02,
+          "p95": 0.03,
+          "p100": 0.04,
+          "mean": 0.02,
+          "min": 0.01,
+          "stdev": 0.0
+        },
+        "generation": {
+          "measured": true,
+          "n": 110,
+          "p50": 86.31,
+          "p70": 92.23,
+          "p90": 103.42,
+          "p95": 112.67,
+          "p100": 162.34,
+          "mean": 85.47,
+          "min": 44.73,
+          "stdev": 17.56
+        },
+        "grounding": {
+          "measured": true,
+          "n": 110,
+          "p50": 23.96,
+          "p70": 26.89,
+          "p90": 32.64,
+          "p95": 36.8,
+          "p100": 49.67,
+          "mean": 25.12,
+          "min": 16.64,
+          "stdev": 5.51
+        },
+        "tts": {
+          "measured": false,
+          "note": "stage did not run"
+        }
+      }
+    },
+    "hi": {
+      "n": 120,
+      "refusal_rate": 0.1833,
+      "total_rag_ms": {
+        "measured": true,
+        "n": 120,
+        "p50": 139.78,
+        "p70": 156.0,
+        "p90": 180.76,
+        "p95": 203.48,
+        "p100": 261.11,
+        "mean": 129.02,
+        "min": 19.51,
+        "stdev": 56.29
+      },
+      "end_to_end_ms": {
+        "measured": true,
+        "n": 120,
+        "p50": 139.79,
+        "p70": 156.01,
+        "p90": 180.76,
+        "p95": 203.48,
+        "p100": 261.12,
+        "mean": 129.02,
+        "min": 19.51,
+        "stdev": 56.29
+      },
+      "stages": {
+        "validate": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.0,
+          "p70": 0.0,
+          "p90": 0.0,
+          "p95": 0.0,
+          "p100": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "stdev": 0.0
+        },
+        "stt": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "language_detection": {
+          "measured": true,
+          "n": 118,
+          "p50": 0.01,
+          "p70": 0.01,
+          "p90": 0.01,
+          "p95": 0.01,
+          "p100": 0.04,
+          "mean": 0.01,
+          "min": 0.01,
+          "stdev": 0.0
+        },
+        "input_guardrail": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.06,
+          "p70": 0.06,
+          "p90": 0.07,
+          "p95": 0.07,
+          "p100": 0.11,
+          "mean": 0.06,
+          "min": 0.03,
+          "stdev": 0.01
+        },
+        "query_rewrite": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "dense_retrieval": {
+          "measured": true,
+          "n": 120,
+          "p50": 20.49,
+          "p70": 21.55,
+          "p90": 22.83,
+          "p95": 23.47,
+          "p100": 47.81,
+          "mean": 21.03,
+          "min": 17.69,
+          "stdev": 2.88
+        },
+        "bm25_retrieval": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "fusion": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.02,
+          "p70": 0.02,
+          "p90": 0.02,
+          "p95": 0.02,
+          "p100": 0.03,
+          "mean": 0.02,
+          "min": 0.01,
+          "stdev": 0.01
+        },
+        "rerank": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.18,
+          "p70": 0.2,
+          "p90": 0.22,
+          "p95": 0.25,
+          "p100": 0.29,
+          "mean": 0.18,
+          "min": 0.14,
+          "stdev": 0.03
+        },
+        "evidence_check": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.02,
+          "p70": 0.02,
+          "p90": 0.03,
+          "p95": 0.03,
+          "p100": 0.04,
+          "mean": 0.02,
+          "min": 0.01,
+          "stdev": 0.0
+        },
+        "generation": {
+          "measured": true,
+          "n": 98,
+          "p50": 97.87,
+          "p70": 109.57,
+          "p90": 128.09,
+          "p95": 149.14,
+          "p100": 198.1,
+          "mean": 103.0,
+          "min": 60.15,
+          "stdev": 22.33
+        },
+        "grounding": {
+          "measured": true,
+          "n": 98,
+          "p50": 27.63,
+          "p70": 30.1,
+          "p90": 37.74,
+          "p95": 43.52,
+          "p100": 49.52,
+          "mean": 28.59,
+          "min": 16.81,
+          "stdev": 6.9
+        },
+        "tts": {
+          "measured": false,
+          "note": "stage did not run"
+        }
+      }
+    },
+    "mr": {
+      "n": 120,
+      "refusal_rate": 0.3167,
+      "total_rag_ms": {
+        "measured": true,
+        "n": 120,
+        "p50": 144.58,
+        "p70": 161.62,
+        "p90": 186.1,
+        "p95": 226.44,
+        "p100": 289.07,
+        "mean": 118.98,
+        "min": 20.17,
+        "stdev": 71.22
+      },
+      "end_to_end_ms": {
+        "measured": true,
+        "n": 120,
+        "p50": 144.58,
+        "p70": 161.63,
+        "p90": 186.1,
+        "p95": 226.45,
+        "p100": 289.07,
+        "mean": 118.98,
+        "min": 20.17,
+        "stdev": 71.22
+      },
+      "stages": {
+        "validate": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.0,
+          "p70": 0.0,
+          "p90": 0.0,
+          "p95": 0.0,
+          "p100": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "stdev": 0.0
+        },
+        "stt": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "language_detection": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.01,
+          "p70": 0.01,
+          "p90": 0.01,
+          "p95": 0.01,
+          "p100": 0.01,
+          "mean": 0.01,
+          "min": 0.01,
+          "stdev": 0.0
+        },
+        "input_guardrail": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.06,
+          "p70": 0.07,
+          "p90": 0.07,
+          "p95": 0.08,
+          "p100": 0.12,
+          "mean": 0.06,
+          "min": 0.04,
+          "stdev": 0.01
+        },
+        "query_rewrite": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "dense_retrieval": {
+          "measured": true,
+          "n": 120,
+          "p50": 21.91,
+          "p70": 22.22,
+          "p90": 22.85,
+          "p95": 23.17,
+          "p100": 23.86,
+          "mean": 21.91,
+          "min": 19.78,
+          "stdev": 0.71
+        },
+        "bm25_retrieval": {
+          "measured": false,
+          "note": "stage did not run"
+        },
+        "fusion": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.02,
+          "p70": 0.02,
+          "p90": 0.02,
+          "p95": 0.02,
+          "p100": 0.03,
+          "mean": 0.02,
+          "min": 0.01,
+          "stdev": 0.0
+        },
+        "rerank": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.2,
+          "p70": 0.21,
+          "p90": 0.22,
+          "p95": 0.24,
+          "p100": 0.48,
+          "mean": 0.2,
+          "min": 0.16,
+          "stdev": 0.04
+        },
+        "evidence_check": {
+          "measured": true,
+          "n": 120,
+          "p50": 0.02,
+          "p70": 0.03,
+          "p90": 0.03,
+          "p95": 0.03,
+          "p100": 0.05,
+          "mean": 0.02,
+          "min": 0.02,
+          "stdev": 0.01
+        },
+        "generation": {
+          "measured": true,
+          "n": 82,
+          "p50": 109.46,
+          "p70": 115.0,
+          "p90": 147.42,
+          "p95": 172.2,
+          "p100": 222.68,
+          "mean": 111.9,
+          "min": 70.59,
+          "stdev": 29.84
+        },
+        "grounding": {
+          "measured": true,
+          "n": 82,
+          "p50": 27.75,
+          "p70": 32.24,
+          "p90": 40.25,
+          "p95": 48.0,
+          "p100": 54.8,
+          "mean": 29.34,
+          "min": 18.93,
+          "stdev": 8.0
+        },
+        "tts": {
+          "measured": false,
+          "note": "stage did not run"
+        }
+      }
+    }
+  },
+  "overall": {
+    "total_rag_ms": {
+      "measured": true,
+      "n": 360,
+      "p50": 137.45,
+      "p70": 149.84,
+      "p90": 172.83,
+      "p95": 198.71,
+      "p100": 289.07,
+      "mean": 123.33,
+      "min": 19.09,
+      "stdev": 56.68
+    },
+    "end_to_end_ms": {
+      "measured": true,
+      "n": 360,
+      "p50": 137.45,
+      "p70": 149.85,
+      "p90": 172.83,
+      "p95": 198.71,
+      "p100": 289.07,
+      "mean": 123.34,
+      "min": 19.09,
+      "stdev": 56.69
+    },
+    "stages": {
+      "validate": {
+        "measured": true,
+        "n": 360,
+        "p50": 0.0,
+        "p70": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p100": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "stdev": 0.0
+      },
+      "stt": {
+        "measured": false,
+        "note": "stage did not run"
+      },
+      "language_detection": {
+        "measured": true,
+        "n": 353,
+        "p50": 0.01,
+        "p70": 0.01,
+        "p90": 0.01,
+        "p95": 0.01,
+        "p100": 0.04,
+        "mean": 0.01,
+        "min": 0.01,
+        "stdev": 0.0
+      },
+      "input_guardrail": {
+        "measured": true,
+        "n": 360,
+        "p50": 0.06,
+        "p70": 0.06,
+        "p90": 0.07,
+        "p95": 0.08,
+        "p100": 0.15,
+        "mean": 0.06,
+        "min": 0.03,
+        "stdev": 0.01
+      },
+      "query_rewrite": {
+        "measured": false,
+        "note": "stage did not run"
+      },
+      "dense_retrieval": {
+        "measured": true,
+        "n": 360,
+        "p50": 20.88,
+        "p70": 21.82,
+        "p90": 22.77,
+        "p95": 23.24,
+        "p100": 47.81,
+        "mean": 21.02,
+        "min": 17.69,
+        "stdev": 2.02
+      },
+      "bm25_retrieval": {
+        "measured": false,
+        "note": "stage did not run"
+      },
+      "fusion": {
+        "measured": true,
+        "n": 360,
+        "p50": 0.02,
+        "p70": 0.02,
+        "p90": 0.02,
+        "p95": 0.02,
+        "p100": 0.03,
+        "mean": 0.02,
+        "min": 0.01,
+        "stdev": 0.01
+      },
+      "rerank": {
+        "measured": true,
+        "n": 360,
+        "p50": 0.18,
+        "p70": 0.2,
+        "p90": 0.22,
+        "p95": 0.24,
+        "p100": 0.48,
+        "mean": 0.19,
+        "min": 0.13,
+        "stdev": 0.03
+      },
+      "evidence_check": {
+        "measured": true,
+        "n": 360,
+        "p50": 0.02,
+        "p70": 0.02,
+        "p90": 0.03,
+        "p95": 0.03,
+        "p100": 0.05,
+        "mean": 0.02,
+        "min": 0.01,
+        "stdev": 0.0
+      },
+      "generation": {
+        "measured": true,
+        "n": 290,
+        "p50": 94.25,
+        "p70": 105.67,
+        "p90": 127.57,
+        "p95": 147.42,
+        "p100": 222.68,
+        "mean": 98.87,
+        "min": 44.73,
+        "stdev": 25.67
+      },
+      "grounding": {
+        "measured": true,
+        "n": 290,
+        "p50": 26.52,
+        "p70": 29.17,
+        "p90": 36.4,
+        "p95": 42.61,
+        "p100": 54.8,
+        "mean": 27.49,
+        "min": 16.64,
+        "stdev": 7.01
+      },
+      "tts": {
+        "measured": false,
+        "note": "stage did not run"
+      }
+    }
+  }
+}
