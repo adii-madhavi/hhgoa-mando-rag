@@ -2,6 +2,10 @@
 
 **Status: FROZEN, awaiting `LLM_API_KEY`.**
 Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
+Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
+
+`PROJECT_STATE.md` and `TODO.md` are the source of truth. Update both after
+every major task.
 
 Do not make architecture changes or run the calibration until the key is
 provided. Phases 3–11 are gated behind Phase 2, which is gated on the key.

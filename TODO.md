@@ -30,6 +30,7 @@ Deadline: 2026-08-22 23:59.
 - [x] Docker / compose / requirements / .env.example
 - [x] **Phase 1 — LLM answerability judge** (built, 66 tests, NOT measured)
 - [x] Konkani reframed as product-not-benchmark language, enforced in code
+- [x] Pushed to https://github.com/adii-madhavi/hhgoa-mando-rag (`main`, 67 files)
 
 ---
 
@@ -89,6 +90,18 @@ python evaluation/answerability_calibration.py --n-per-class 100
 
 **Phase 11 — final testing**
 - [ ] Keep all 172 passing; add live-API failure/timeout/retry cases
+
+---
+
+## Repo hygiene
+
+- [ ] Re-commit + push after **every** major task; keep `PROJECT_STATE.md` and
+      `TODO.md` current in the same commit
+- Excluded by `.gitignore`: `.env`, `.venv/`, `data/raw|processed|index|qdrant/`,
+      `*.parquet`, `*.npy` — the 936 MB corpus and 206 MB index are rebuilt via
+      `ingestion/`, not stored in git
+- `experiments/*.json` **are** committed: they are the evidence behind every
+      number in `EXPERIMENTS.md`
 
 ---
 
