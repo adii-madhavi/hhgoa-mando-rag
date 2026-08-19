@@ -195,6 +195,17 @@ class RAGResponse(BaseModel):
     judge_confidence: float | None = None
     judge_reason: str | None = None
     judge_supporting_ids: list[str] = Field(default_factory=list)
+    # Async judge observability. `judge_async_dispatched` means a background
+    # call was fired and this response did NOT wait for it -- so no judge cost
+    # appears in total_rag_ms.
+    judge_cache_hit: bool | None = None
+    judge_async_dispatched: bool = False
+    # Generation observability
+    generator: str | None = None
+    persona: str | None = None
+    sources_used: list[int] = Field(default_factory=list)
+    invalid_sources: list[int] = Field(default_factory=list)
+    language_match: bool | None = None
     latency: Latency = Field(default_factory=Latency)
     warnings: list[str] = Field(default_factory=list)
 

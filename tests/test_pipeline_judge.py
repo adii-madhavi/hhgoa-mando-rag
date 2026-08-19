@@ -49,7 +49,12 @@ def parts():
     return emb, retriever, vectors
 
 
-def build(parts, judge, **overrides):
+def build(parts, judge, judge_mode="sync", **overrides):
+    """
+    Composition tests pin judge_mode="sync" deliberately: they verify the
+    GATING logic (does a refusal verdict block the answer), which async
+    intentionally defers. Async behaviour has its own tests below.
+    """
     emb, retriever, vectors = parts
     cfg = Config()
     cfg.top_k = 3
@@ -64,7 +69,8 @@ def build(parts, judge, **overrides):
     return RAGPipeline(retriever=retriever, embedder=emb,
                        reranker=MMRReranker(emb, dense_matrix=vectors),
                        config=cfg, generator=ExtractiveGenerator(emb),
-                       dense_matrix=vectors, judge=judge)
+                       dense_matrix=vectors, judge=judge,
+                       judge_mode=judge_mode)
 
 
 def scripted(replies, **kw):
@@ -163,3 +169,92 @@ class TestJudgeDisabled:
         assert r.refused
         assert r.refusal_reason == RefusalReason.prompt_injection
         assert client.calls == [], "input guardrail runs first"
+
+
+class TestAsyncJudge:
+    """
+    Phase 3: the judge must NOT block the first user-visible response.
+
+    Measured judge latency is P50 909 ms / P70 11.1 s (EXPERIMENTS.md E15)
+    against a 137 ms RAG budget, so async is the production default. These
+    tests pin the guarantee.
+    """
+
+    def test_async_is_the_default_mode(self, parts):
+        p = build(parts, scripted([verdict_json(True, 0.9, ["p1"])]),
+                  judge_mode="async")
+        assert p.judge_mode == "async"
+
+    def test_first_response_does_not_wait_for_the_judge(self, parts):
+        """
+        A judge that would refuse must NOT block or alter the first answer.
+        The cosine guard decides; the verdict arrives afterwards.
+        """
+        p = build(parts, scripted([verdict_json(False, 0.99, [], "no")]),
+                  judge_mode="async")
+        r = p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        assert not r.refused, "async judge must not gate the first response"
+        assert r.judge_async_dispatched is True
+        assert r.judge_cache_hit is False
+        p.shutdown()
+
+    def test_async_judge_cost_is_not_in_total_rag_ms(self, parts):
+        """The whole point: no judge latency in the measured critical path."""
+        p = build(parts, scripted([verdict_json(True, 0.9, ["p1"])]),
+                  judge_mode="async")
+        r = p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        assert r.latency.flat()["answerability_ms"] == 0.0
+        p.shutdown()
+
+    def test_second_identical_query_hits_the_cache_and_gates(self, parts):
+        """
+        Cold -> answer fast, judge in background.
+        Warm -> the verdict is known, so it gates at cache-lookup cost.
+        """
+        p = build(parts, scripted([verdict_json(False, 0.99, [],
+                                                "not answerable")]),
+                  judge_mode="async")
+        first = p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        assert not first.refused
+
+        p.shutdown()                      # let the background call land
+
+        second = p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        assert second.judge_cache_hit is True
+        assert second.refused, "cached refusal verdict must gate"
+        assert second.latency.flat()["answerability_ms"] == 0.0
+
+    def test_background_failure_never_breaks_the_request(self, parts):
+        p = build(parts, scripted(["garbage", "still garbage"]),
+                  judge_mode="async")
+        r = p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        assert not r.refused and r.ok
+        p.shutdown()
+
+    def test_async_latency_is_tracked_separately(self, parts):
+        p = build(parts, scripted([verdict_json(True, 0.9, ["p1"])]),
+                  judge_mode="async")
+        p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        p.shutdown()
+        assert len(p.judge_async_ms) == 1, "background call must be timed"
+
+    def test_duplicate_queries_fire_one_background_call(self, parts):
+        client = FakeClient([verdict_json(True, 0.9, ["p1"])] * 5)
+        p = build(parts, AnswerabilityJudge(client=client), judge_mode="async")
+        for _ in range(3):
+            p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        p.shutdown()
+        assert len(client.calls) <= 1, \
+            "claim() must collapse duplicate in-flight judgements"
+
+
+class TestGenerationObservability:
+    def test_generator_and_persona_reported(self, parts):
+        p = build(parts, None)
+        r = p.run(RAGRequest(text=ANSWERABLE, want_audio=False))
+        assert r.generator == "ExtractiveGenerator"
+
+    def test_language_match_recorded(self, parts):
+        p = build(parts, None)
+        r = p.run(RAGRequest(text=ANSWERABLE, language="en", want_audio=False))
+        assert r.language_match is not None

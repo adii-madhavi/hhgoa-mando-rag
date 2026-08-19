@@ -27,17 +27,17 @@ available offline.
 
 from __future__ import annotations
 
-import json
-import os
+import re
 import time
 from dataclasses import dataclass, field
 
-import httpx
 import numpy as np
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from app.generation.persona import build_user_prompt, system_prompt
+from app.generation.llm_client import (ChatClient, LLMError, LLMSchemaError,
+                                       LLMTransient)
+from app.generation.persona import (DEFAULT_PERSONA, PersonaConfig,
+                                    build_user_prompt, system_prompt)
 from app.guardrails.input import sanitize_for_prompt
 
 
@@ -53,11 +53,16 @@ class GenerationTransient(GenerationError):
 class Generation:
     answer: str
     sources_used: list[int] = field(default_factory=list)
+    # Source numbers the model cited that were NOT shown to it. Dropped from
+    # sources_used and surfaced here so fabricated citations are visible
+    # rather than silently discarded.
+    invalid_sources: list[int] = field(default_factory=list)
     sufficient: bool = True
     latency_ms: float = 0.0
     extractive: bool = False
     raw: str | None = None
     attempts: int = 1
+    schema_attempts: int = 1
 
 
 def _parse_structured(content: str) -> dict:
@@ -93,84 +98,131 @@ def _parse_structured(content: str) -> dict:
     return {"answer": content.strip(), "sources_used": [], "sufficient": True}
 
 
+class GenerationOutput(BaseModel):
+    """
+    Strict schema for the generator's reply. Extra keys are rejected rather
+    than ignored, so a model that invents a field fails validation and gets a
+    corrective retry instead of silently smuggling something past us.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    answer: str
+    sources_used: list[int] = Field(default_factory=list)
+    sufficient: bool = True
+
+    @field_validator("sources_used", mode="before")
+    @classmethod
+    def _coerce_sources(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, (str, int)):
+            v = [v]
+        out = []
+        for x in v:
+            # Models emit "1", "[1]", "source 1"; keep the digits, drop prose.
+            m = re.search(r"\d+", str(x))
+            if m:
+                out.append(int(m.group()))
+        return out
+
+
 class LLMGenerator:
-    def __init__(self, api_key: str | None = None, model: str | None = None,
-                 base_url: str | None = None, timeout_s: float = 15.0,
-                 max_attempts: int = 3, temperature: float = 0.3,
-                 max_tokens: int = 400):
-        self.api_key = api_key or os.environ.get("LLM_API_KEY") \
-            or os.environ.get("SARVAM_API_KEY")
-        self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
-                         or "https://api.sarvam.ai/v1").rstrip("/")
-        self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b")
-        self.timeout_s = timeout_s
-        self.max_attempts = max_attempts
+    """
+    Grounded generation on the shared ChatClient.
+
+    Migrated off its own httpx/tenacity stack (Phase 3). What that fixed:
+
+    * `max_tokens` was 400. sarvam-105b is a REASONING model that emits
+      `reasoning_content` before its answer -- at 400 it returns
+      finish_reason="length" with content=None, i.e. no answer at all. The
+      judge hit exactly this and 3000 is the configuration validated across
+      600 calibration calls (EXPERIMENTS.md E15).
+    * retry classification, timeout handling and JSON recovery were duplicated
+      and had already drifted (0.3s/3s backoff vs the client's rate-limit-sized
+      2s/30s over 5 attempts).
+    * the reply was parsed with `dict.get()` and no schema, so a malformed
+      object became an empty answer rather than a retry.
+    """
+
+    def __init__(self, client: ChatClient | None = None,
+                 api_key: str | None = None, model: str | None = None,
+                 base_url: str | None = None, timeout_s: float = 30.0,
+                 temperature: float = 0.3, max_tokens: int = 3000,
+                 max_schema_attempts: int = 2,
+                 persona: PersonaConfig | None = None):
+        self.client = client or ChatClient(
+            api_key=api_key, model=model, base_url=base_url,
+            timeout_s=timeout_s)
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.available = bool(self.api_key)
-        self._client = httpx.Client(timeout=httpx.Timeout(timeout_s)) \
-            if self.available else None
+        self.max_schema_attempts = max_schema_attempts
+        self.persona = persona or DEFAULT_PERSONA
+
+    @property
+    def available(self) -> bool:
+        return self.client.available
+
+    @property
+    def model(self) -> str:
+        return self.client.model
 
     def generate(self, query: str, evidence_texts: list[str], lang: str,
                  history=None) -> Generation:
-        if not self.available:
+        if not self.client.available:
             raise GenerationError("no LLM API key configured")
+        if not evidence_texts:
+            raise GenerationError("refusing to generate with no evidence")
 
+        n_sources = len(evidence_texts)
         messages = [
-            {"role": "system", "content": system_prompt(lang)},
+            {"role": "system", "content": system_prompt(lang, self.persona)},
             {"role": "user", "content": build_user_prompt(
                 sanitize_for_prompt(query), evidence_texts, history)},
         ]
 
-        state = {"attempts": 0}
-
-        @retry(stop=stop_after_attempt(self.max_attempts),
-               wait=wait_exponential(multiplier=0.3, max=3.0),
-               retry=retry_if_exception_type(GenerationTransient),
-               reraise=True)
-        def _attempt() -> str:
-            state["attempts"] += 1
+        def _validate(payload: dict) -> GenerationOutput:
             try:
-                resp = self._client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self.api_key}",
-                             "Content-Type": "application/json"},
-                    json={"model": self.model, "messages": messages,
-                          "temperature": self.temperature,
-                          "max_tokens": self.max_tokens},
-                )
-            except (httpx.TimeoutException, httpx.TransportError) as exc:
-                raise GenerationTransient(str(exc)) from exc
+                out = GenerationOutput.model_validate(payload)
+            except ValidationError as exc:
+                raise LLMSchemaError(
+                    "; ".join(f"{'.'.join(str(p) for p in e['loc'])}: "
+                              f"{e['msg']}" for e in exc.errors()[:4])) from exc
+            if out.sufficient and not out.answer.strip():
+                raise LLMSchemaError(
+                    "sufficient=true but answer is empty")
+            return out
 
-            if resp.status_code == 429 or resp.status_code >= 500:
-                raise GenerationTransient(
-                    f"HTTP {resp.status_code}: {resp.text[:200]}")
-            if resp.status_code >= 400:
-                raise GenerationError(
-                    f"HTTP {resp.status_code}: {resp.text[:200]}")
-            data = resp.json()
-            try:
-                return data["choices"][0]["message"]["content"]
-            except (KeyError, IndexError) as exc:
-                raise GenerationError(
-                    f"unexpected response shape: {str(data)[:200]}") from exc
+        try:
+            parsed, meta = self.client.chat_json(
+                messages, _validate, temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                max_schema_attempts=self.max_schema_attempts,
+                response_format={"type": "json_object"})
+        except (LLMSchemaError, LLMTransient, LLMError) as exc:
+            raise GenerationError(f"{type(exc).__name__}: {exc}") from exc
 
-        t0 = time.perf_counter()
-        content = _attempt()
-        ms = (time.perf_counter() - t0) * 1000
+        # CITATION VALIDATION. The model may only cite source numbers it was
+        # actually shown. Out-of-range citations are dropped and recorded --
+        # a claim of support we cannot verify is not support. This mirrors the
+        # judge's anti-fabrication rule, enforced in code rather than trusted
+        # to the prompt.
+        valid = [i for i in parsed.sources_used if 1 <= i <= n_sources]
+        invalid = [i for i in parsed.sources_used if i not in valid]
 
-        parsed = _parse_structured(content)
         return Generation(
-            answer=str(parsed.get("answer", "")).strip(),
-            sources_used=[int(s) for s in parsed.get("sources_used", [])
-                          if str(s).isdigit()],
-            sufficient=bool(parsed.get("sufficient", True)),
-            latency_ms=ms, raw=content, attempts=state["attempts"],
+            answer=parsed.answer.strip(),
+            sources_used=valid,
+            invalid_sources=invalid,
+            sufficient=parsed.sufficient,
+            latency_ms=meta.latency_ms,
+            raw=None,
+            attempts=meta.http_attempts,
+            schema_attempts=meta.schema_attempts,
         )
 
     def close(self) -> None:
-        if self._client is not None:
-            self._client.close()
+        self.client.close()
 
 
 class ExtractiveGenerator:

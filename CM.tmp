@@ -1,0 +1,38 @@
+Phase 3: Mando generation on shared ChatClient, judge moved off critical path
+
+LLMGenerator migrated to the shared ChatClient. Removed the duplicated
+httpx/tenacity stack, which had already drifted (0.3s/3s backoff vs the
+client's rate-limit-sized 2s/30s over 5 attempts) and parsed replies with
+dict.get() and no schema.
+
+Fixed the reasoning-model truncation: max_tokens 400 -> 3000, the configuration
+validated across 600 judge calls in E15. At 400 sarvam-105b spends the whole
+budget on reasoning_content and returns content=None.
+
+Structured output: strict Pydantic GenerationOutput with extra="forbid",
+source-number coercion, and corrective retry on schema violation. Citation
+validation drops out-of-range source numbers into Generation.invalid_sources
+so fabricated citations are visible rather than swallowed.
+
+Persona is now configurable (PersonaConfig: name, voice, enabled), Mando by
+default. voice is a TTS-selection field ONLY and never enters the prompt, so
+male/female can be added without touching the RAG core -- pinned by a
+prompt-is-voice-invariant test. Konkani gets an explicit honesty clause telling
+the model to fall back to English rather than fake fluency we cannot verify.
+
+Judge is ASYNC by default. Its measured P50 909ms / P70 11.1s cannot sit in a
+137ms budget, so:
+  cache miss -> answer from the cosine guard now, judge in the background
+  cache hit  -> the verdict gates at dict-lookup cost
+VerdictCache keys on sha256(normalized query | sorted evidence ids | index
+version); claim() collapses duplicate in-flight judgements so a burst of the
+same question fires one call. judge_async_ms is tracked separately and is never
+counted in total_rag_ms.
+
+Also added: same-language enforcement (detect and warn, never refuse a correct
+answer over a cosmetic mismatch), generator/persona/citation observability on
+RAGResponse.
+
+237 tests pass (was 177).
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>

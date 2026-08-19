@@ -39,17 +39,20 @@ gracefully; stages that affect TRUTH refuse.
 from __future__ import annotations
 
 import logging
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from app.config import CONFIG, Config
 from app.generation.generator import (ExtractiveGenerator, Generation,
                                       GenerationError, LLMGenerator)
 from app.generation.persona import refusal_text_with_locale
 from app.guardrails.answerability import AnswerabilityJudge
+from app.guardrails.verdict_cache import VerdictCache, verdict_key
 from app.guardrails.grounding import verify_grounding
 from app.guardrails.input import check_input
 from app.guardrails.relevance import assess_evidence
-from app.language import resolve_language
+from app.language import detect_language, resolve_language
 from app.schemas import (Evidence, Lang, Latency, RAGRequest, RAGResponse,
                          RefusalReason, Stage, Timer)
 
@@ -67,7 +70,9 @@ _FOLLOWUP_MARKERS = {
 class RAGPipeline:
     def __init__(self, retriever, embedder, reranker, config: Config = CONFIG,
                  stt=None, tts=None, generator=None, dense_matrix=None,
-                 judge=None):
+                 judge=None, judge_mode: str = "async",
+                 verdict_cache=None, index_version: str = "",
+                 judge_workers: int = 2):
         self.cfg = config
         self.retriever = retriever
         # Cached corpus embeddings, so reranking and grounding reuse what the
@@ -78,9 +83,27 @@ class RAGPipeline:
         self.reranker = reranker
         self.stt = stt
         self.tts = tts
-        # Answerability judge (Phase 1). None disables the stage entirely,
-        # which is the configuration every pre-Phase-1 measurement used.
+        # Answerability judge. None disables the stage entirely, which is the
+        # configuration every pre-Phase-1 measurement used.
+        #
+        # judge_mode:
+        #   "async" (default, PRODUCTION) -- never blocks the first response.
+        #            A cache miss answers from the cosine guard and judges in
+        #            the background so the next identical query is a hit.
+        #   "sync"  -- blocks. For evaluation harnesses only; using it on the
+        #            voice path would add P50 909 ms / P70 11.1 s (E15).
         self.judge = judge
+        self.judge_mode = judge_mode
+        self.index_version = index_version
+        self.verdict_cache = (verdict_cache if verdict_cache is not None
+                              else (VerdictCache() if judge is not None
+                                    else None))
+        self._judge_pool = (ThreadPoolExecutor(max_workers=judge_workers,
+                                               thread_name_prefix="judge")
+                            if judge is not None and judge_mode == "async"
+                            else None)
+        self.judge_async_ms: list[float] = []
+        self._async_lock = threading.Lock()
 
         if generator is not None:
             self.generator = generator
@@ -136,6 +159,41 @@ class RAGPipeline:
         if not history or not self._needs_rewrite(query, lang):
             return query
         return f"{history[-1].query} — {query}"
+
+    def _judge_in_background(self, key, query, evidence_texts, lang) -> None:
+        """
+        Fire one background judge call, then store the verdict.
+
+        `claim()` guarantees exactly one call per key even under a burst of
+        identical queries -- otherwise N concurrent askers would each pay for
+        their own judgement of the same thing.
+        """
+        if self._judge_pool is None or self.verdict_cache is None:
+            return
+        if not self.verdict_cache.claim(key):
+            return                      # already cached or already in flight
+
+        def _work():
+            t0 = time.perf_counter()
+            try:
+                verdict = self.judge.judge(query, evidence_texts, lang)
+                self.verdict_cache.put(key, verdict)
+            except Exception as exc:    # never let a background thread die loud
+                log.warning("background judge failed: %s", exc)
+                self.verdict_cache.release(key)
+            finally:
+                ms = (time.perf_counter() - t0) * 1000
+                with self._async_lock:
+                    self.judge_async_ms.append(ms)
+
+        try:
+            self._judge_pool.submit(_work)
+        except RuntimeError:             # pool shut down
+            self.verdict_cache.release(key)
+
+    def shutdown(self, wait: bool = True) -> None:
+        if self._judge_pool is not None:
+            self._judge_pool.shutdown(wait=wait)
 
     # -- main --------------------------------------------------------------
     def run(self, request: RAGRequest) -> RAGResponse:
@@ -248,6 +306,7 @@ class RAGPipeline:
                                 lang, decision.detail)
 
         evidence_texts = [c.context for c in candidates]
+        verdict = None
 
         # 8b. LLM answerability judge ---------------------------------------
         # Runs AFTER the cosine guard, so it only sees candidates that already
@@ -260,8 +319,36 @@ class RAGPipeline:
         # LLM outage degrades the system to its previous behaviour rather than
         # refusing everything; set judge.fail_closed=True to invert that.
         if self.judge is not None:
-            with Timer(lat, Stage.answerability):
-                verdict = self.judge.judge(query, evidence_texts, lang)
+            # ASYNC BY DEFAULT. The judge's measured latency is P50 909 ms /
+            # P70 11.1 s (E15) against a 137 ms RAG budget, so it MUST NOT
+            # block the first user-visible response.
+            #
+            #   cache HIT  -> the verdict is already known; applying it costs
+            #                 a dict lookup, so it gates synchronously
+            #   cache MISS -> answer now from the cosine guard, and judge in
+            #                 the BACKGROUND so the next identical query is a
+            #                 hit. The background call is timed separately as
+            #                 judge_async_ms and is NEVER counted in
+            #                 total_rag_ms.
+            #
+            # Set judge_mode="sync" to block (evaluation harnesses do this;
+            # the voice path never should).
+            key = verdict_key(query, [c.doc_id for c in candidates],
+                              self.index_version)
+            verdict = self.verdict_cache.get(key) if self.verdict_cache else None
+            resp.judge_cache_hit = verdict is not None
+
+            if verdict is None and self.judge_mode == "sync":
+                with Timer(lat, Stage.answerability):
+                    verdict = self.judge.judge(query, evidence_texts, lang)
+                if self.verdict_cache is not None:
+                    self.verdict_cache.put(key, verdict)
+
+            elif verdict is None:
+                self._judge_in_background(key, query, evidence_texts, lang)
+                resp.judge_async_dispatched = True
+
+        if self.judge is not None and verdict is not None:
             resp.judge_available = verdict.available
             resp.judge_sufficient = verdict.sufficient
             resp.judge_confidence = verdict.confidence
@@ -312,9 +399,39 @@ class RAGPipeline:
             return self._refuse(resp, RefusalReason.internal_error, lang,
                                 f"generation error: {exc}")
 
+        resp.generator = type(self.generator).__name__
+        resp.persona = getattr(getattr(self.generator, "persona", None),
+                               "name", None)
+        resp.sources_used = list(getattr(gen, "sources_used", []) or [])
+        resp.invalid_sources = list(getattr(gen, "invalid_sources", []) or [])
+        if resp.invalid_sources:
+            # The model cited a source number it was never shown. Already
+            # dropped from sources_used; surfaced so fabricated citations are
+            # visible rather than silently swallowed.
+            resp.warnings.append(
+                f"generator cited unknown sources {resp.invalid_sources}; "
+                f"dropped")
+
         if not gen.answer.strip():
             return self._refuse(resp, RefusalReason.insufficient_evidence,
                                 lang, "generator returned an empty answer")
+
+        # SAME-LANGUAGE ENFORCEMENT. The persona is instructed to reply in the
+        # user's language, but instruction is not verification. We detect the
+        # answer's language and record a mismatch. It is a WARNING, not a
+        # refusal: a correct answer in the wrong language is still useful, and
+        # refusing it would trade a real answer for a cosmetic failure. The
+        # flag lets the UI and evaluation see it.
+        try:
+            detected = detect_language(gen.answer)
+            resp.language_match = (detected.lang == lang
+                                   or detected.confidence < 0.5)
+            if not resp.language_match:
+                resp.warnings.append(
+                    f"answer language {detected.lang!r} does not match "
+                    f"requested {lang!r}")
+        except Exception:
+            resp.language_match = None
 
         # The model may itself report the sources were inadequate. Trust it --
         # it read them.

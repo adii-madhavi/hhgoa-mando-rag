@@ -16,9 +16,40 @@ prohibition on slang-stuffing. A character that opens every answer with
 
 from __future__ import annotations
 
-from app.schemas import Lang
+from dataclasses import dataclass
 
-LANG_NAME = {"en": "English", "hi": "Hindi (हिन्दी)", "mr": "Marathi (मराठी)"}
+from app.schemas import LANG_CAPABILITIES, Lang, has_capability
+
+LANG_NAME = {"en": "English", "hi": "Hindi (हिन्दी)", "mr": "Marathi (मराठी)",
+             "kok": "Konkani (कोंकणी)"}
+
+
+@dataclass(frozen=True)
+class PersonaConfig:
+    """
+    Configurable persona.
+
+    `voice` is a PRESENTATION field. It selects a TTS speaker and NOTHING else:
+    it never enters the prompt, so the generated answer is byte-identical
+    whichever voice is chosen. That is what lets male/female Mando be added
+    later without touching the RAG core -- the branch happens after generation,
+    not before it:
+
+        RAG answer --+--> male TTS
+                     +--> female TTS
+
+    A test asserts the prompt is voice-invariant, so this cannot regress.
+    """
+
+    name: str = "Mando"
+    voice: str = "male"          # male | female -- TTS selection only
+    enabled: bool = True         # False -> neutral assistant, no persona
+
+    def tts_voice(self) -> str:
+        return self.voice if self.voice in ("male", "female") else "male"
+
+
+DEFAULT_PERSONA = PersonaConfig()
 
 # Hard factual constraints. These are NOT persona; they are non-negotiable and
 # are stated first so they anchor the model's behaviour.
@@ -49,24 +80,60 @@ vocabulary. Do not open with a catchphrase, do not sprinkle in Konkani or Goan
 slang, and do not mention Goa unless the question is actually about it."""
 
 
-def system_prompt(lang: str) -> str:
+NEUTRAL = """You are a factual question-answering assistant. Answer plainly and concisely."""
+
+
+def _language_clause(lang: str) -> str:
+    """
+    Language instruction, honest about what we can actually verify.
+
+    For en/hi/mr we hold labelled benchmark data and measured language
+    preservation. Konkani is a PRODUCT language with no benchmark data
+    (EXPERIMENTS.md E2b), so the model is told to answer in Konkani but the
+    system never advertises Konkani fluency, and no Konkani quality number is
+    claimed anywhere.
+    """
     language = LANG_NAME.get(lang, LANG_NAME["en"])
-    return f"""{PERSONA}
+    clause = (f"Language: reply entirely in {language}. The user spoke to you "
+              f"in {language}, so answer in it — the same warmth, just in "
+              f"their language. Do not translate the question back to them or "
+              f"mention what language you are using.")
+    if not has_capability(lang, "benchmark"):
+        clause += (
+            "\n\nIf you cannot answer naturally and accurately in "
+            f"{language}, say so briefly in {language} and give the answer in "
+            f"English rather than producing broken {language}. An honest "
+            "fallback is better than a fluent impression you cannot sustain.")
+    return clause
+
+
+def system_prompt(lang: str, persona: PersonaConfig | None = None) -> str:
+    """
+    Build the system prompt.
+
+    NOTE: `persona.voice` is deliberately NOT referenced here. Voice is a TTS
+    concern; letting it leak into the prompt would make the answer depend on
+    the speaker and break the "identical answer, selectable voice" guarantee.
+    """
+    persona = persona or DEFAULT_PERSONA
+    language = LANG_NAME.get(lang, LANG_NAME["en"])
+    character = PERSONA.replace("Mando", persona.name) if persona.enabled         else NEUTRAL
+    return f"""{character}
 
 {GROUNDING_RULES}
 
-Language: reply entirely in {language}. The user spoke to you in {language},
-so answer in it — the same Mando, the same warmth, just in their language.
-Do not translate the question back to them or mention what language you are
-using.
+{_language_clause(lang)}
 
-Return your reply as JSON with exactly these keys:
-  "answer"       string  — what Mando says, in {language}
+Return your reply as ONLY a JSON object with exactly these keys, no prose and
+no markdown fences:
+  "answer"       string  — what you say, in {language}
   "sources_used" array of integers — the source numbers you actually used
   "sufficient"   boolean — false if the sources did not answer the question
 
-If "sufficient" is false, "answer" should be Mando telling the user, in
-{language}, that he could not find enough in his sources to answer reliably."""
+Cite only source numbers that were shown to you. Never invent a source number.
+
+If "sufficient" is false, "answer" should tell the user, in {language}, that
+you could not find enough in your sources to answer reliably."""
 
 
 def build_user_prompt(query: str, evidence_texts: list[str],
