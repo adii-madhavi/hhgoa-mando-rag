@@ -1,0 +1,207 @@
+{
+  "config": {
+    "model": "sarvam-105b-conversations",
+    "deadline_s": 20.0,
+    "n_per_language": 12
+  },
+  "note": "time_to_first_token != time_to_first_visible_text: the stream carries JSON, so the first bytes are '{\"answer\": \"' and are not shown to the user. TTFV is measured from the first decoded prose character.",
+  "per_language": {
+    "en": {
+      "n_attempted": 12,
+      "cosine_refused": 0,
+      "deadline_refusals": 0,
+      "incomplete_answers": 0,
+      "failures": 0,
+      "retrieval_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 36.3,
+        "p70": 38.0,
+        "p100": 57.6,
+        "mean": 38.3,
+        "min": 33.5
+      },
+      "time_to_first_token_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 246.0,
+        "p70": 258.5,
+        "p100": 313.5,
+        "mean": 234.1,
+        "min": 173.3
+      },
+      "time_to_first_visible_text_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 390.9,
+        "p70": 410.4,
+        "p100": 476.1,
+        "mean": 392.1,
+        "min": 340.7
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 4251.6,
+        "p70": 4372.8,
+        "p100": 9429.7,
+        "mean": 4633.2,
+        "min": 2481.3
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 4309.3,
+        "p70": 4406.8,
+        "p100": 9465.1,
+        "mean": 4671.5,
+        "min": 2518.7
+      }
+    },
+    "hi": {
+      "n_attempted": 12,
+      "cosine_refused": 3,
+      "deadline_refusals": 0,
+      "incomplete_answers": 0,
+      "failures": 0,
+      "retrieval_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 37.5,
+        "p70": 38.1,
+        "p100": 41.2,
+        "mean": 37.1,
+        "min": 34.4
+      },
+      "time_to_first_token_ms": {
+        "measured": true,
+        "n": 9,
+        "p50": 243.1,
+        "p70": 254.0,
+        "p100": 335.6,
+        "mean": 245.4,
+        "min": 175.0
+      },
+      "time_to_first_visible_text_ms": {
+        "measured": true,
+        "n": 9,
+        "p50": 376.0,
+        "p70": 411.5,
+        "p100": 497.5,
+        "mean": 388.7,
+        "min": 328.5
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 9,
+        "p50": 3448.6,
+        "p70": 3931.9,
+        "p100": 5243.0,
+        "mean": 3691.4,
+        "min": 2758.8
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 9,
+        "p50": 3483.0,
+        "p70": 3966.9,
+        "p100": 5280.5,
+        "mean": 3728.2,
+        "min": 2796.5
+      }
+    },
+    "mr": {
+      "n_attempted": 12,
+      "cosine_refused": 3,
+      "deadline_refusals": 4,
+      "incomplete_answers": 0,
+      "failures": 0,
+      "retrieval_ms": {
+        "measured": true,
+        "n": 12,
+        "p50": 37.9,
+        "p70": 38.9,
+        "p100": 51.5,
+        "mean": 39.9,
+        "min": 35.2
+      },
+      "time_to_first_token_ms": {
+        "measured": true,
+        "n": 5,
+        "p50": 260.6,
+        "p70": 265.1,
+        "p100": 302.3,
+        "mean": 252.8,
+        "min": 178.8
+      },
+      "time_to_first_visible_text_ms": {
+        "measured": true,
+        "n": 5,
+        "p50": 427.3,
+        "p70": 434.5,
+        "p100": 468.9,
+        "mean": 411.2,
+        "min": 298.5
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 5,
+        "p50": 3915.3,
+        "p70": 4902.3,
+        "p100": 5807.7,
+        "mean": 4186.3,
+        "min": 2610.2
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 5,
+        "p50": 3953.3,
+        "p70": 4940.2,
+        "p100": 5852.9,
+        "mean": 4225.9,
+        "min": 2649.1
+      }
+    }
+  },
+  "overall": {
+    "time_to_first_token_ms": {
+      "measured": true,
+      "n": 26,
+      "p50": 246.3,
+      "p70": 260.6,
+      "p100": 335.6,
+      "mean": 241.6,
+      "min": 173.3
+    },
+    "time_to_first_visible_text_ms": {
+      "measured": true,
+      "n": 26,
+      "p50": 390.9,
+      "p70": 426.8,
+      "p100": 497.5,
+      "mean": 394.6,
+      "min": 298.5
+    },
+    "generation_ms": {
+      "measured": true,
+      "n": 26,
+      "p50": 4175.1,
+      "p70": 4372.8,
+      "p100": 9429.7,
+      "mean": 4221.3,
+      "min": 2481.3
+    },
+    "total_rag_ms": {
+      "measured": true,
+      "n": 26,
+      "p50": 4213.1,
+      "p70": 4406.8,
+      "p100": 9465.1,
+      "mean": 4259.3,
+      "min": 2518.7
+    },
+    "n_attempted": 36,
+    "deadline_refusal_rate": 0.1111,
+    "failure_rate": 0.0
+  }
+}

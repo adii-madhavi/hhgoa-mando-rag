@@ -1084,3 +1084,103 @@ claim remains scoped strictly to the retrieval core, exactly as in E16.
 - **Mando persona output.** Blocked on `LLM_API_KEY`.
 - Long-document corpus, which is where the chunking strategies of E6 would
   actually be expected to matter.
+
+---
+
+## E18 — Streaming generation: TTFT/TTFV measured, hard deadline enforced
+
+**Command:** `python evaluation/streaming_latency.py --n 12 --deadline 20 --timeout 60`
+**Raw:** `experiments/streaming_latency.json` (36 queries: 12 per language,
+en/hi/mr)
+
+### What was built
+
+`ChatClient.stream_chat()` — SSE parsing that yields **only** `delta.content`.
+`delta.reasoning_content` is a separate field in Sarvam's stream and is never
+read into the yield path — filtering is structural (by field name), not a
+string-matching heuristic that could miss a variant.
+
+`StreamingAnswerExtractor` (`app/generation/stream_parser.py`) — the actual
+hard part. The model streams *JSON* (`{"answer": "...", "sources_used": ...}`),
+so raw deltas are not user-visible text; the first bytes are literally
+`{"answer": "`. The extractor decodes the `answer` string value incrementally,
+character-by-character, so prose can be shown before the object is complete.
+Verified correct at chunk sizes 1/2/3/5/17/999 chars, in both `ensure_ascii`
+modes, for English and Devanagari. One real bug caught by that test matrix:
+the first implementation computed an escape's byte-length (2 vs 6 for `\uXXXX`)
+*before* knowing whether a lone trailing `\` was a short or a Unicode escape,
+which silently truncated and dropped every Devanagari character. Fixed by
+deferring the length decision until the second byte is available.
+
+`LLMGenerator.generate_stream()` — hard wall-clock deadline (`deadline_s`,
+default 20 s) across the **whole** stream, not a per-read socket timeout. A
+per-read timeout does not stop a server that stays alive and dribbles bytes
+slowly, which is exactly how E17's 65,132 ms Marathi call happened.
+
+### Instrumentation (exactly the 8 requested fields)
+
+`retrieval_ms`, `time_to_first_token_ms`, `time_to_first_visible_text_ms`,
+`generation_ms` (≡ `stream_duration_ms`), `total_rag_ms`, `end_to_end_ms`
+(≡ `total_rag_ms` — no STT/TTS yet). All present on `Generation` and reported
+per-query and aggregated by the benchmark.
+
+### Results, 36 queries (12 en / 12 hi / 12 mr)
+
+| metric | P50 | P70 | P100 |
+|---|---|---|---|
+| **TTFT** (first raw token) | 246.3 ms | 260.6 ms | 335.6 ms |
+| **TTFV** (first visible prose) | 390.9 ms | 426.8 ms | 497.5 ms |
+| generation (full stream) | 4,175.1 ms | 4,372.8 ms | 9,429.7 ms |
+| total (retrieval + generation) | 4,213.1 ms | 4,406.8 ms | 9,465.1 ms |
+
+`n=26` successful generations out of 36 attempts. Deadline refusal rate
+**11.1%** (4/36, all Marathi — consistent with Marathi being the weakest
+retrieval/generation language throughout this project). Failure rate
+(malformed output / transport error) **0.0%**.
+
+Per language: `en` 0 cosine-refusals, 0 deadline-refusals — every attempt
+generated. `hi` 3 cosine-refused (evidence guard, not generation). `mr` 3
+cosine-refused **and** 4 deadline-refused — the hardest language on every axis
+measured in this project.
+
+### What streaming actually bought, stated precisely
+
+**TTFV (390.9 ms P50) is what a user perceives as "it started responding."**
+That is a **~10.7× improvement** in perceived responsiveness versus waiting for
+the full 4,175.1 ms non-streamed generation (E17) — even though the *total*
+time to a complete answer is unchanged, because streaming doesn't make the
+model faster, it changes when partial output becomes visible.
+
+**Not claimed:** streaming does not bring generation under 200 ms. Total
+generation P50 is still ~4.2 s — same order of magnitude as E17, because
+streaming redistributes when tokens arrive, not how many the model needs to
+produce. The P100 tail (9,429.7 ms even *within* the 20 s deadline) confirms
+E17's finding that the tail is the real problem, not the median.
+
+**The deadline works as designed.** All 4 Marathi timeouts triggered *before*
+any visible text (never a partial-then-truncated answer in this run), so every
+one produced a clean refusal rather than a half-formed response reaching the
+user. `Generation.incomplete=True` — the marker for "text was shown, then cut
+off" — exists and is tested (`tests/test_streaming.py`) but did not fire in
+this benchmark; it will on a slower query.
+
+### Degradation policy, as implemented (all four required cases)
+
+| case | behaviour |
+|---|---|
+| timeout before any visible text | `GenerationError` raised → pipeline's existing refusal path |
+| timeout after partial text | stream ends, `Generation.incomplete=True`, **no citations trusted** (`sources_used=[]`) — a truncated answer cannot claim validated support |
+| malformed/non-JSON stream | `GenerationError` raised; nothing partial is exposed, because everything emitted so far came only from inside the `answer` string (no JSON syntax can leak even on failure) |
+| transport/API failure | wrapped as `GenerationError`, same fallback path as the non-streaming generator |
+
+### Scope note: pipeline-level streaming not yet wired
+
+Streaming exists at the `LLMGenerator` level and is fully guarded (evidence,
+citation validation, grounding-eligible). `RAGPipeline.run()` itself remains
+synchronous end-to-end — extending it to expose true mid-generation streaming
+through the full guardrail chain (retrieval → cosine guard → judge → stream)
+is a larger change, deliberately deferred. The public API's SSE endpoint
+(`docs/api-v1.md`) currently streams the *completed* answer word-by-word for a
+stable frontend contract, and says so explicitly rather than implying
+token-level latency it does not yet deliver.
+

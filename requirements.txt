@@ -44,6 +44,7 @@ regex==2026.7.19
 
 # --- API / clients ----------------------------------------------------------
 fastapi==0.141.1
+python-multipart==0.0.32       # required for FastAPI UploadFile/Form (voice API multipart upload)
 uvicorn==0.52.3                 # ASGI server; invoked as a CLI, never imported
 pydantic==2.13.4
 httpx==0.28.1                   # Sarvam STT/TTS and the LLM client

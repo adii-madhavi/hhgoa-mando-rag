@@ -1,11 +1,21 @@
 """
 FastAPI surface for MANDO.
 
-Endpoints
-    GET  /health   readiness + which credentials are missing
-    GET  /config   effective non-secret configuration
-    POST /ask      the full pipeline (text or audio in, answer + audio out)
-    POST /ask/text convenience: text-only, no TTS -- what the benchmarks use
+Two layers, deliberately kept separate:
+
+  INTERNAL (used by evaluation/ scripts and this project's own benchmarks)
+    GET  /health
+    GET  /config
+    POST /ask        full RAGResponse, all internal fields
+    POST /ask/text   convenience: text-only, no TTS
+
+  PUBLIC v1 (app/api/v1/) -- the contract a separately-developed frontend
+  consumes. Frozen, documented in docs/api-v1.md, and never exposes internal
+  pipeline fields, model names, or credentials.
+    GET  /api/health
+    GET  /api/config
+    POST /api/text/query
+    POST /api/voice/query
 
 The index loads once at startup, not per request. Loading it per request would
 put a multi-second model load inside the latency budget and make every reported
@@ -45,6 +55,13 @@ app = FastAPI(title="MANDO", version="0.1.0",
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
     allow_headers=["*"])
+
+# Public v1 API -- the boundary a separately-developed frontend consumes.
+# Deferred import: app.api.v1.* modules import STATE from this module
+# lazily (inside request handlers), so this import is safe here even
+# though it happens before STATE is populated by startup().
+from app.api.v1.router import api_router                   # noqa: E402
+app.include_router(api_router, prefix="/api")
 
 STATE: dict = {"pipeline": None, "manifest": None, "error": None}
 

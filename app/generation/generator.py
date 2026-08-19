@@ -35,7 +35,9 @@ import numpy as np
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from app.generation.llm_client import (ChatClient, LLMError, LLMSchemaError,
-                                       LLMTransient)
+                                       LLMTransient, StreamTimeout,
+                                       extract_json)
+from app.generation.stream_parser import StreamingAnswerExtractor
 from app.generation.persona import (DEFAULT_PERSONA, PersonaConfig,
                                     build_user_prompt, system_prompt)
 from app.guardrails.input import sanitize_for_prompt
@@ -63,6 +65,14 @@ class Generation:
     raw: str | None = None
     attempts: int = 1
     schema_attempts: int = 1
+    # Streaming instrumentation. None when the blocking path was used.
+    time_to_first_token_ms: float | None = None
+    time_to_first_visible_text_ms: float | None = None
+    stream_duration_ms: float | None = None
+    streamed: bool = False
+    # True when the deadline fired after some visible text had already been
+    # emitted. The answer is real but truncated, and the caller must say so.
+    incomplete: bool = False
 
 
 def _parse_structured(content: str) -> dict:
@@ -150,7 +160,8 @@ class LLMGenerator:
                  base_url: str | None = None, timeout_s: float = 30.0,
                  temperature: float = 0.3, max_tokens: int = 3000,
                  max_schema_attempts: int = 2,
-                 persona: PersonaConfig | None = None):
+                 persona: PersonaConfig | None = None,
+                 deadline_s: float = 20.0):
         self.client = client or ChatClient(
             api_key=api_key, model=model, base_url=base_url,
             timeout_s=timeout_s)
@@ -158,6 +169,10 @@ class LLMGenerator:
         self.max_tokens = max_tokens
         self.max_schema_attempts = max_schema_attempts
         self.persona = persona or DEFAULT_PERSONA
+        # HARD wall-clock budget for a single generation. E17 recorded a
+        # 65,132 ms Marathi call; a per-read socket timeout does not stop a
+        # server that dribbles bytes slowly, so this is total-elapsed.
+        self.deadline_s = deadline_s
 
     @property
     def available(self) -> bool:
@@ -220,6 +235,111 @@ class LLMGenerator:
             attempts=meta.http_attempts,
             schema_attempts=meta.schema_attempts,
         )
+
+
+    def generate_stream(self, query: str, evidence_texts: list[str], lang: str,
+                        history=None, deadline_s: float | None = None):
+        """
+        Stream a grounded answer.
+
+        Yields user-visible text deltas, then finally a validated `Generation`.
+        Usage:
+
+            for item in gen.generate_stream(...):
+                if isinstance(item, Generation):
+                    final = item        # validated, cited, safe to trust
+                else:
+                    emit(item)          # prose the user can see NOW
+
+        What streaming does NOT relax
+        -----------------------------
+        The evidence is still the only factual source, the strict schema still
+        validates the completed object, and citations are still range-checked.
+        Streaming changes WHEN text appears, not WHAT is allowed to appear.
+
+        Degradation, in the order it can occur:
+
+        * deadline before any visible text  -> raise; caller refuses. Nothing
+          half-formed is shown.
+        * deadline after some visible text  -> stop, mark `incomplete=True`.
+          The text already shown was real evidence-grounded output; we do not
+          retract it, but the caller must not present it as a whole answer.
+        * malformed / non-JSON reply        -> raise. Anything already emitted
+          came from inside the `answer` string, so no JSON syntax leaked, but
+          we refuse to hand back an unvalidated object.
+        * transport failure                 -> raise; caller falls back.
+        """
+        if not self.client.available:
+            raise GenerationError("no LLM API key configured")
+        if not evidence_texts:
+            raise GenerationError("refusing to generate with no evidence")
+
+        deadline = deadline_s if deadline_s is not None else self.deadline_s
+        n_sources = len(evidence_texts)
+        messages = [
+            {"role": "system", "content": system_prompt(lang, self.persona)},
+            {"role": "user", "content": build_user_prompt(
+                sanitize_for_prompt(query), evidence_texts, history)},
+        ]
+
+        extractor = StreamingAnswerExtractor()
+        t0 = time.perf_counter()
+        ttft = ttfv = None
+        timed_out = False
+
+        try:
+            for piece in self.client.stream_chat(
+                    messages, temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    response_format={"type": "json_object"},
+                    deadline_s=deadline):
+                if ttft is None:
+                    ttft = (time.perf_counter() - t0) * 1000
+                visible = extractor.feed(piece)
+                if visible:
+                    if ttfv is None:
+                        ttfv = (time.perf_counter() - t0) * 1000
+                    yield visible
+        except StreamTimeout:
+            timed_out = True
+            if not extractor.emitted:
+                # Nothing was shown; a clean refusal is the honest outcome.
+                raise GenerationError(
+                    f"generation deadline ({deadline}s) exceeded before any "
+                    f"answer text") from None
+        except (LLMTransient, LLMError) as exc:
+            raise GenerationError(f"{type(exc).__name__}: {exc}") from exc
+
+        duration = (time.perf_counter() - t0) * 1000
+
+        if timed_out:
+            # Partial but real text. Return it marked incomplete rather than
+            # discarding work the user has already seen.
+            yield Generation(
+                answer=extractor.emitted.strip(), sources_used=[],
+                sufficient=True, latency_ms=duration, streamed=True,
+                incomplete=True, time_to_first_token_ms=ttft,
+                time_to_first_visible_text_ms=ttfv,
+                stream_duration_ms=duration)
+            return
+
+        try:
+            payload = extract_json(extractor.raw)
+            parsed = GenerationOutput.model_validate(payload)
+        except Exception as exc:
+            raise GenerationError(
+                f"stream produced unvalidatable output: {exc}") from exc
+
+        valid = [i for i in parsed.sources_used if 1 <= i <= n_sources]
+        invalid = [i for i in parsed.sources_used if i not in valid]
+
+        yield Generation(
+            answer=parsed.answer.strip(), sources_used=valid,
+            invalid_sources=invalid, sufficient=parsed.sufficient,
+            latency_ms=duration, streamed=True,
+            time_to_first_token_ms=ttft,
+            time_to_first_visible_text_ms=ttfv,
+            stream_duration_ms=duration)
 
     def close(self) -> None:
         self.client.close()

@@ -7,24 +7,36 @@ Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
 
 ---
 
-## 🔴 NEXT ACTION — the latency TAIL, and Sarvam credentials
+## 🔴 NEXT ACTION — Sarvam credentials, then pipeline-level streaming
 
-Generation median is fixed (E17): switching to the non-reasoning
-`sarvam-105b-conversations` cut English P50 **15.4 s -> 4.3 s** with quality
-held (grounded 0.86-0.88, correct language, valid citations).
+Streaming is done and measured (E18): TTFT P50 246ms, **TTFV P50 391ms**
+(10.7x better perceived latency than the 4,175ms non-streamed generation), a
+hard 20s deadline enforced, and clean degradation on 4/12 Marathi timeouts (all
+before any visible text -- never a broken partial answer reaching a user).
 
-Remaining problems, in order:
+Public API v1 is done (`app/api/v1/`, `docs/api-v1.md`): thin adapter over
+RAGPipeline, 4 endpoints, 35 isolation/validation tests. Frontend is now
+OUT OF SCOPE for backend work -- it will be built separately against that doc.
 
-- [ ] **Tail latency.** P100 hit **65 s** on a Marathi call; async judge P100
-      127 s. Needs a hard client-side deadline + degradation path, not a better
-      median.
-- [ ] **Streaming** so first-audio starts before the full answer is ready --
-      the single biggest perceived-latency win for voice.
-- [ ] **`SARVAM_API_KEY`** to unblock Phases 5-7, 10 (STT, TTS, voice loop).
+Remaining, in order:
 
-Honest position on the 200 ms target: only the **retrieval core** (22-50 ms
-P50) is inside it. Generation is ~4.3 s, roughly 20x over, and the voice loop
-adds two more network round trips on top. These are reported as separate
+- [ ] **`SARVAM_API_KEY`** to unblock Phases 5-7, 10 (STT, TTS, voice loop) --
+      the only remaining external blocker.
+- [ ] **Pipeline-level streaming.** `LLMGenerator.generate_stream()` is fully
+      guarded and works; `RAGPipeline.run()` is still synchronous end-to-end.
+      The public API's SSE endpoint currently streams the COMPLETED answer
+      word-chunked (documented honestly in docs/api-v1.md), not true
+      mid-generation tokens through the guard chain. Wiring that through is
+      the next real latency-perception improvement once STT/TTS exist to make
+      it worth doing for voice.
+- [ ] **Generation tail** (P100 9.4s in E18, was 65s in E17) -- improved by the
+      hard deadline but not eliminated. Revisit if a faster/cheaper model
+      becomes available.
+
+Honest position on the 200 ms target, unchanged: only the **retrieval core**
+(22-50 ms P50) is inside it. TTFV brings PERCEIVED latency to 391ms, which is
+much closer but is not the same claim as "under 200ms" and is never presented
+as such. Generation TOTAL is still ~4.2s P50. These are reported as separate
 numbers and never merged.
 
 ---
@@ -41,6 +53,23 @@ numbers and never merged.
 - [x] Judge async by default + deterministic VerdictCache
 - [x] Same-language enforcement (warn, never refuse a correct answer)
 - [x] 237 tests passing (was 177)
+
+## ✅ STREAMING + PUBLIC API DONE
+
+- [x] `ChatClient.stream_chat()` -- SSE parsing, reasoning_content structurally excluded
+- [x] `StreamingAnswerExtractor` -- incremental JSON->prose decode, verified at
+      6 chunk sizes x 2 escape modes x en/hi (Devanagari \uXXXX bug found+fixed)
+- [x] `LLMGenerator.generate_stream()` -- hard 20s wall-clock deadline,
+      citations still validated, incomplete-answer marking
+- [x] 8-field latency instrumentation (TTFT/TTFV/generation/total/etc)
+- [x] Benchmarked 36 queries (E18): TTFT P50 246ms, TTFV P50 391ms
+- [x] `app/api/v1/` -- schemas.py, translate.py, router.py, text.py, voice.py, meta.py
+- [x] 4 public endpoints: POST /api/text/query, POST /api/voice/query,
+      GET /api/health, GET /api/config -- content-negotiated JSON/SSE
+- [x] `docs/api-v1.md` -- full contract, examples, SSE format, error responses
+- [x] python-multipart added (was missing; needed for UploadFile/Form)
+- [x] 35 new tests: schema isolation, secret-leak checks, validation, SSE, multipart
+- [x] 321 tests passing (was 237)
 
 ---
 

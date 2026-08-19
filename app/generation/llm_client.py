@@ -221,6 +221,88 @@ class ChatClient:
             f"schema validation failed after {max_schema_attempts} attempts: "
             f"{last_error}")
 
+    def stream_chat(self, messages: list[dict], temperature: float = 0.0,
+                    max_tokens: int = 3000,
+                    response_format: dict | None = None,
+                    deadline_s: float | None = None):
+        """
+        Yield raw `delta.content` pieces from an SSE stream.
+
+        TWO THINGS THIS DELIBERATELY DOES NOT DO:
+
+        1. It never yields `reasoning_content`. The API sends it as a SEPARATE
+           delta field, so filtering is structural rather than heuristic --
+           internal deliberation cannot reach a user even by accident.
+        2. It does not retry. A half-delivered stream cannot be resumed, and
+           silently restarting would replay text the caller already emitted.
+           Transport failures raise; the caller decides.
+
+        `deadline_s` is a HARD wall-clock budget across the whole stream, not a
+        per-read socket timeout. A slow-but-alive server can hold a socket open
+        indefinitely while dribbling bytes -- which is how a 65 s Marathi call
+        happened -- and only a total-elapsed check stops that.
+        """
+        if not self.available:
+            raise LLMError("no LLM API key configured (set LLM_API_KEY)")
+
+        payload = {"model": self.model, "messages": messages,
+                   "temperature": temperature, "max_tokens": max_tokens,
+                   "stream": True}
+        if response_format:
+            payload["response_format"] = response_format
+
+        started = time.perf_counter()
+        try:
+            with self._client.stream(
+                    "POST", f"{self.base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self.api_key}",
+                             "Content-Type": "application/json"},
+                    json=payload) as resp:
+
+                if resp.status_code >= 400:
+                    resp.read()
+                    body = resp.text[:200]
+                    if resp.status_code == 429 or resp.status_code >= 500:
+                        raise LLMTransient(f"HTTP {resp.status_code}: {body}")
+                    raise LLMError(f"HTTP {resp.status_code}: {body}")
+
+                for line in resp.iter_lines():
+                    if deadline_s is not None and                             time.perf_counter() - started > deadline_s:
+                        raise StreamTimeout(
+                            f"generation exceeded {deadline_s}s deadline")
+                    if not line:
+                        continue
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        obj = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue          # keep-alive or partial frame
+                    choices = obj.get("choices") or [{}]
+                    delta = choices[0].get("delta") or {}
+                    # ONLY content. reasoning_content is ignored by name.
+                    piece = delta.get("content")
+                    if piece:
+                        yield piece
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            raise LLMTransient(f"{type(exc).__name__}: {exc}") from exc
+
     def close(self) -> None:
         if self._client is not None:
             self._client.close()
+
+
+@dataclass
+class StreamEvent:
+    """One piece of a streaming response."""
+    text: str = ""              # user-visible delta (never reasoning)
+    raw: str = ""               # raw content delta, for final validation
+    first_token: bool = False
+    done: bool = False
+
+
+class StreamTimeout(LLMTransient):
+    """The hard client-side deadline fired mid-stream."""
