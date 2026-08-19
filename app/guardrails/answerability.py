@@ -152,8 +152,15 @@ class AnswerabilityJudge:
     def __init__(self, client: ChatClient | None = None,
                  timeout_s: float = 8.0, max_schema_attempts: int = 2,
                  fail_closed: bool = False,
-                 min_confidence: float = 0.0):
+                 min_confidence: float = 0.0,
+                 max_tokens: int = 1500):
         self.client = client or ChatClient(timeout_s=timeout_s)
+        # Sized for REASONING models. sarvam-105b emits reasoning_content
+        # before its answer; measured 901 completion tokens for a judge
+        # verdict. At 300 it returned finish_reason="length" and content=None.
+        # Too small a budget here does not degrade quality -- it produces no
+        # answer at all.
+        self.max_tokens = max_tokens
         self.max_schema_attempts = max_schema_attempts
         self.fail_closed = fail_closed
         # Optional: treat a low-confidence `sufficient` as insufficient. Left
@@ -194,7 +201,8 @@ class AnswerabilityJudge:
 
         try:
             verdict, meta = self.client.chat_json(
-                messages, _validate, temperature=0.0, max_tokens=300,
+                messages, _validate, temperature=0.0,
+                max_tokens=self.max_tokens,
                 max_schema_attempts=self.max_schema_attempts,
                 response_format={"type": "json_object"})
         except (LLMSchemaError, LLMTransient, LLMError) as exc:

@@ -102,7 +102,7 @@ class LLMGenerator:
             or os.environ.get("SARVAM_API_KEY")
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
                          or "https://api.sarvam.ai/v1").rstrip("/")
-        self.model = model or os.environ.get("LLM_MODEL", "sarvam-m")
+        self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b")
         self.timeout_s = timeout_s
         self.max_attempts = max_attempts
         self.temperature = temperature

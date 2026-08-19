@@ -5,9 +5,15 @@ Deadline: 2026-08-22 23:59.
 
 ---
 
-## 🔴 BLOCKED — needs you, not code
+## 🔴 NEEDS A DECISION FROM YOU
 
-- [ ] **Provide `LLM_API_KEY`** → unblocks Phase 2, which gates Phases 3–11
+- [ ] **Judge latency**: p50 907 ms en but **12 s hi**, p100 50–61 s (timeout is
+      20 s). Before the 600-call run, pick one:
+      (a) raise timeout to ~60 s and accept a 1–3 h run,
+      (b) add concurrency to the calibration harness,
+      (c) cap `--n-per-class` lower.
+      Separately: at ~1 s+ per call the judge cannot sit in a 200 ms budget —
+      it may be an offline/eval tool rather than a runtime stage.
 - [ ] **Provide `SARVAM_API_KEY`** → unblocks Phases 5–7, 10 (voice)
 - [ ] *(optional, later)* Konkani speaker to author the 25–50 product questions
       in `data/konkani_product_eval.jsonl` — currently template placeholders,
@@ -30,7 +36,12 @@ Deadline: 2026-08-22 23:59.
 - [x] Docker / compose / requirements / .env.example
 - [x] **Phase 1 — LLM answerability judge** (built, 66 tests, NOT measured)
 - [x] Konkani reframed as product-not-benchmark language, enforced in code
-- [x] Pushed to https://github.com/adii-madhavi/hhgoa-mando-rag (`main`, 67 files)
+- [x] Pushed to https://github.com/adii-madhavi/hhgoa-mando-rag (`main`)
+- [x] `requirements.txt` regenerated from AST scan of real imports; `datasets`
+      and `pandas` dropped (unused); all 16 packages pinned and verified
+- [x] **Phase 2 smoke test (n=5/class) run live** — found and fixed: deprecated
+      `sarvam-m` model, and reasoning-model `max_tokens` truncation returning
+      `content=None`. 176 tests passing.
 
 ---
 
@@ -42,6 +53,7 @@ Deadline: 2026-08-22 23:59.
 python evaluation/answerability_calibration.py --n-per-class 100
 ```
 
+- [ ] Decide the latency question above FIRST
 - [ ] Run A/B/C on en, hi, mr (Konkani → explicit N/A row)
 - [ ] Apply the **pre-registered** rule: judge ships only if B or C beats A's
       balanced accuracy (0.6525 / 0.6325 / 0.6100) **and** the false-answer

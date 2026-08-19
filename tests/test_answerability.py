@@ -420,3 +420,45 @@ class TestInjectionAgainstTheJudge:
             Verdict.model_validate({"sufficient": False, "confidence": value,
                                     "supporting_passage_ids": [],
                                     "reason": "x"})
+
+
+class TestReasoningModelNullContent:
+    """
+    REGRESSION: sarvam-105b emits `reasoning_content` before its answer. With
+    too small a max_tokens the API returns a well-formed 200 with
+    finish_reason="length" and content=None. That surfaced as an opaque
+    "no JSON object in reply: None" schema error, pointing at the prompt when
+    the actual fix was a bigger token budget. Measured: 300 tokens -> None,
+    1500 -> valid JSON in 901 tokens.
+    """
+
+    @staticmethod
+    def _handler(content, finish="stop", reasoning="x" * 40):
+        def h(request):
+            return httpx.Response(200, json={
+                "choices": [{"finish_reason": finish,
+                             "message": {"content": content,
+                                         "reasoning_content": reasoning}}],
+                "usage": {"completion_tokens": 300}})
+        return h
+
+    def test_null_content_raises_a_diagnosable_error(self):
+        c = client_with(self._handler(None, finish="length"))
+        with pytest.raises(LLMTransient) as exc:
+            c.chat([{"role": "user", "content": "x"}])
+        msg = str(exc.value)
+        assert "finish_reason='length'" in msg
+        assert "max_tokens" in msg, "error must name the actual fix"
+
+    def test_null_content_is_transient_so_it_retries(self):
+        """A truncated reasoning trace is worth one more attempt."""
+        assert issubclass(LLMTransient, LLMError)
+
+    def test_valid_content_still_works(self):
+        c = client_with(self._handler(verdict_json(True, 0.9, ["p1"])))
+        assert "sufficient" in c.chat([{"role": "user", "content": "x"}]).content
+
+    def test_judge_defaults_to_a_reasoning_sized_budget(self):
+        j = AnswerabilityJudge(client=FakeClient([verdict_json()]))
+        assert j.max_tokens >= 1000, \
+            "too small a budget yields no answer at all on reasoning models"

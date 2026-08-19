@@ -96,7 +96,7 @@ class ChatClient:
             or os.environ.get("SARVAM_API_KEY")
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
                          or "https://api.sarvam.ai/v1").rstrip("/")
-        self.model = model or os.environ.get("LLM_MODEL", "sarvam-m")
+        self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b")
         self.timeout_s = timeout_s
         self.max_http_attempts = max_http_attempts
         self.available = bool(self.api_key)
@@ -143,10 +143,30 @@ class ChatClient:
         ms = (time.perf_counter() - t0) * 1000
 
         try:
-            content = data["choices"][0]["message"]["content"]
+            choice = data["choices"][0]
+            content = choice["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise LLMError(
                 f"unexpected response shape: {str(data)[:200]}") from exc
+
+        # REASONING MODELS: sarvam-105b (and similar) emit `reasoning_content`
+        # first and only then the answer. If max_tokens runs out mid-reasoning
+        # the API returns finish_reason="length" with content=None -- a
+        # perfectly well-formed 200 response carrying no answer. Without this
+        # branch that surfaced as an opaque "no JSON object in reply: None"
+        # schema failure, which is exactly the wrong diagnosis: the fix is a
+        # bigger token budget, not a better prompt. Measured: at max_tokens=300
+        # the model spent all 300 on reasoning and returned None; at 1500 it
+        # used 901 and returned valid JSON.
+        if content is None:
+            finish = choice.get("finish_reason")
+            reasoning = (choice.get("message") or {}).get("reasoning_content")
+            raise LLMTransient(
+                f"model returned no content (finish_reason={finish!r}, "
+                f"reasoning_content={len(reasoning) if reasoning else 0} chars"
+                f"). If finish_reason is 'length', raise max_tokens -- this is "
+                f"a reasoning model and the budget was consumed before it "
+                f"produced an answer.")
 
         return ChatResult(content=content, latency_ms=ms,
                           attempts=state["attempts"],

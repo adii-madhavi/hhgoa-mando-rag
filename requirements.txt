@@ -1,31 +1,54 @@
-# Core data / ingestion
-datasets>=4.0
-pyarrow>=17
-pandas
-numpy
+# MANDO dependencies.
+#
+# Generated from the ACTUAL imports in this repository (AST scan of every .py
+# outside .venv), not from memory. Versions are pinned to the ones every
+# measurement in EXPERIMENTS.md was produced with, so results reproduce.
+#
+# Install everything in one shot:
+#   python -m pip install -r requirements.txt
+#
+# For CPU-only torch (what every benchmark here used, ~200 MB vs ~2.5 GB CUDA),
+# install torch from the CPU index FIRST so the resolve cannot pull CUDA:
+#   python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   python -m pip install -r requirements.txt
 
-# Embeddings & models
-sentence-transformers>=3.0
-torch
-transformers
+# --- data / ingestion -------------------------------------------------------
+# pyarrow reads the MSMARCO-XI parquet shards over HTTP range requests;
+# huggingface_hub enumerates and fetches them.
+#
+# REMOVED: `datasets` and `pandas`. Nothing imports either any more.
+# ingestion/dataset_info.py was rewritten to inspect shards individually,
+# because load_dataset(streaming=True) reads only the FIRST shard and resolves
+# the whole 55.6 GB repo (EXPERIMENTS.md E1). Keeping `datasets` in this file
+# would reintroduce a heavy dependency the code no longer uses.
+pyarrow==25.0.1
+huggingface-hub==1.27.0
 
-# Retrieval
-qdrant-client>=1.16
-rank-bm25
-# regex (NOT the stdlib `re`) is REQUIRED, not optional: Python's re excludes
-# Unicode combining marks from \w, which shatters Devanagari tokens and
-# silently breaks Hindi/Marathi BM25. See EXPERIMENTS.md E4.
-regex
+# --- embeddings / models ----------------------------------------------------
+numpy==2.5.2
+torch==2.13.0
+transformers==5.15.0            # transitive via sentence-transformers; pinned
+                                # because the tokenizer affects retrieval
+sentence-transformers==5.7.0
 
-# API
-fastapi
-uvicorn[standard]
-pydantic>=2
+# --- retrieval --------------------------------------------------------------
+qdrant-client==1.19.0
+rank-bm25==0.2.2                # reference implementation. Production uses
+                                # app/retrieval/bm25_fast.py, which is verified
+                                # against this one in tests (identical rankings
+                                # and scores) -- so the dependency stays.
+# REQUIRED, not optional: Python's stdlib `re` excludes Unicode combining marks
+# from \w, which shatters Devanagari tokens and silently breaks Hindi/Marathi
+# tokenisation. See EXPERIMENTS.md E4.
+regex==2026.7.19
 
-# Clients / infra
-httpx
-tenacity
-python-dotenv
+# --- API / clients ----------------------------------------------------------
+fastapi==0.141.1
+uvicorn==0.52.3                 # ASGI server; invoked as a CLI, never imported
+pydantic==2.13.4
+httpx==0.28.1                   # Sarvam STT/TTS and the LLM client
+tenacity==9.1.4                 # retry policy for both
+python-dotenv==1.2.3
 
-# Tests
-pytest
+# --- tests ------------------------------------------------------------------
+pytest==9.1.1

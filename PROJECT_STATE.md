@@ -1,6 +1,6 @@
 # MANDO — Project State
 
-**Status: FROZEN, awaiting `LLM_API_KEY`.**
+**Status: Phase 2 SMOKE PASSED. Full 600-call calibration not yet run (held).**
 Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
@@ -20,15 +20,29 @@ blocked on two credentials, not on engineering.
 
 ---
 
-## Blockers (both are credentials, not code)
+## Blockers
 
 | blocker | blocks | effect |
 |---|---|---|
-| **`LLM_API_KEY`** | Phase 2 calibration → Phases 3–11 | No answerability numbers, no Mando persona, no generation |
+| **Judge latency** (open question) | Phase 2 full run, and the 200 ms budget | judge p50 907 ms en / **12,048 ms hi**, p100 50–61 s |
 | **`SARVAM_API_KEY`** | Phases 5–7, 10 | No STT, no TTS, no voice-loop latency |
 
-Both clients are written and verified against published API contracts. Neither
-has been exercised against a live service.
+`LLM_API_KEY` is now present and working. The Sarvam STT/TTS clients remain
+verified against published contracts but never exercised live.
+
+### Live-API findings (from the smoke test)
+
+1. **`sarvam-m` is deprecated.** API offers `sarvam-105b` and
+   `sarvam-105b-conversations`. Default updated everywhere.
+2. **`sarvam-105b` is a REASONING model.** It emits `reasoning_content` before
+   its answer. At `max_tokens=300` it returned `finish_reason="length"` and
+   `content=None` — a well-formed 200 carrying no answer, which surfaced as a
+   misleading "schema failure". At 1500 it used 901 tokens and returned valid
+   JSON. Judge budget raised to 1500; `content=None` now raises a diagnosable
+   error naming `max_tokens`. Regression-tested.
+3. **Judge latency is the open problem.** ~900 ms typical, but Hindi p50 is
+   12 s and some calls exceed the 20 s timeout. Needs a decision before the
+   600-call run: raise timeout, add concurrency, or accept the cost.
 
 ---
 
@@ -48,7 +62,8 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Language detection | 95.4% overall · en 1.000 · hi 0.996 · **mr 0.866** |
 | Latency | **TOTAL RAG P50 137.45 ms**, P70 149.84, P100 289.07 (360 requests) |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
-| Answerability judge | **Phase 1 built + 66 tests. NOT YET MEASURED.** |
+| Answerability judge | Phase 1 built + 70 tests. **Smoke-tested live (n=5/class); full calibration pending.** |
+| Dependencies | `requirements.txt` regenerated from an AST scan of actual imports; `datasets` + `pandas` removed (nothing imports them), all 16 pinned |
 
 ### Known weakness, quantified
 
@@ -82,6 +97,27 @@ zero Konkani rows, so no Konkani metric exists or may be manufactured.
 Capability matrix: STT ✅ · TTS ❌ · corpus ❌ · benchmark ❌.
 Measured only by `evaluation/konkani_product_eval.py` (stamped
 `"msmarco_xi": false`), whose question set needs a Konkani speaker to author.
+
+---
+
+## Phase 2 — SMOKE RESULTS (n=5 per class — INDICATIVE, NOT CONCLUSIVE)
+
+Each metric moves in 0.2 steps at this sample size. These do **not** satisfy
+the gate; the full run decides.
+
+| lang | A balAcc | B/C balAcc | B/C falseAnswer | B/C falseRefusal |
+|---|---|---|---|---|
+| en | 0.600 | **1.000** | 0.000 | 0.000 |
+| hi | 0.600 | **0.900** | 0.000 | 0.200 |
+| mr | **0.800** | 0.700 | 0.000 | **0.600** |
+
+Signal: the judge drove false answers to **0.000 in all three languages** —
+exactly what it was built for. Cost: Marathi false refusals hit 0.600 and
+**A still wins Marathi**, consistent with Marathi being the weakest retrieval
+language. Whether that trade is acceptable is what the gate decides, on the
+full sample.
+
+Raw: `experiments/answerability_smoke.json`.
 
 ---
 
