@@ -48,6 +48,7 @@ product set, and those results are never merged into these benchmark metrics.
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import os
 import random
@@ -254,17 +255,42 @@ def main() -> None:
         # -- stage 3: score in the ORIGINAL order --------------------------
         # Reassembled by index so concurrency cannot reorder results and make
         # the run non-reproducible.
+        failures = collections.Counter()
+
         for (q, is_pos, text, contexts, cosine), verdict in zip(prepared,
                                                                 verdicts):
-            A.add(cosine.sufficient, is_pos)
-
-            B.add(verdict.sufficient, is_pos)
             B.judge_ms.append(verdict.latency_ms)
-            B.unavailable += not verdict.available
-            B.downgraded += verdict.downgraded
-            B.invalid_citations += bool(verdict.invalid_ids)
 
-            C.add(cosine.sufficient and verdict.sufficient, is_pos)
+            if not verdict.available:
+                # DO NOT fail-open an unavailable call into a verdict. In run
+                # #1 these were scored as "answered", and because they clustered
+                # on one class they inflated English false-answer 0.20 -> 0.53.
+                # A failed call is MISSING DATA, not a decision.
+                #
+                # The query is dropped from A, B and C alike, so all three are
+                # still scored on an IDENTICAL subset and stay comparable. The
+                # exclusion count and its cause are reported, and the trust
+                # guard decides whether the remainder is usable at all.
+                B.unavailable += 1
+                err = verdict.error or ""
+                if "429" in err or "rate_limit" in err.lower():
+                    failures["http_429_rate_limit"] += 1
+                elif "Timeout" in err or "timeout" in err.lower():
+                    failures["timeout"] += 1
+                elif "no content" in err or "finish_reason" in err:
+                    failures["reasoning_truncation"] += 1
+                elif "LLMSchemaError" in err:
+                    failures["schema_violation"] += 1
+                elif "HTTP 5" in err:
+                    failures["http_5xx"] += 1
+                else:
+                    failures[f"other: {err[:60]}"] += 1
+            else:
+                A.add(cosine.sufficient, is_pos)
+                B.add(verdict.sufficient, is_pos)
+                B.downgraded += verdict.downgraded
+                B.invalid_citations += bool(verdict.invalid_ids)
+                C.add(cosine.sufficient and verdict.sufficient, is_pos)
 
             report["per_query"].append({
                 "lang": lang, "query_id": q["query_id"],
@@ -281,13 +307,20 @@ def main() -> None:
             })
 
         fail_rate = B.unavailable / max(len(prepared), 1)
+        if failures:
+            print(f"  failures by type: {dict(failures)}")
         if fail_rate > 0.02:
             print(f"  !! {B.unavailable}/{len(prepared)} judge calls FAILED "
-                  f"({fail_rate:.1%}). Failed calls fail OPEN and are scored "
-                  f"as 'answered', so B and C are NOT trustworthy above ~2%.")
+                  f"({fail_rate:.1%}). Those queries are EXCLUDED from A/B/C "
+                  f"(missing data, not a verdict). Above ~2% the surviving "
+                  f"sample is treated as UNTRUSTWORTHY and the gate is NOT "
+                  f"applied.")
 
         report["per_language"][lang] = {
             "judge_failure_rate": round(fail_rate, 4),
+            "judge_failures_by_type": dict(failures),
+            "n_scored_after_exclusion": A.tp + A.fn + A.fp + A.tn,
+            "n_attempted": len(prepared),
             "results_trustworthy": bool(fail_rate <= 0.02),
             "A_cosine_only": A.metrics(),
             "B_judge_only": B.metrics(),
