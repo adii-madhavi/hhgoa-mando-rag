@@ -833,6 +833,103 @@ with the E10 figures as context rather than as the literal threshold.
 
 ---
 
+## E15 — Phase 2 calibration run #2: VALID. Gate PASSES.
+
+**Command:** `python evaluation/answerability_calibration.py --n-per-class 100 --concurrency 3 --timeout 120`
+**Raw:** `experiments/answerability_calibration.json` (600 per-query rows)
+**`results_trustworthy`: True for all three languages.**
+
+### Results
+
+| lang | system | falseAns | falseRef | precision | recall | balAcc |
+|---|---|---|---|---|---|---|
+| en | A cosine only | 0.8000 | 0.0600 | 0.5402 | 0.9400 | 0.5700 |
+| en | B judge only | 0.1700 | 0.3800 | 0.7848 | 0.6200 | **0.7250** |
+| en | **C cosine + judge** | **0.1600** | 0.3900 | 0.7922 | 0.6100 | **0.7250** |
+| hi | A cosine only | 0.6364 | 0.2020 | 0.5563 | 0.7980 | 0.5808 |
+| hi | B judge only | 0.3030 | 0.4343 | 0.6512 | 0.5657 | 0.6313 |
+| hi | **C cosine + judge** | **0.2424** | 0.4747 | 0.6842 | 0.5253 | **0.6414** |
+| mr | A cosine only | 0.5455 | 0.2424 | 0.5814 | 0.7576 | 0.6061 |
+| mr | B judge only | 0.2020 | 0.4848 | 0.7183 | 0.5152 | **0.6566** |
+| mr | C cosine + judge | **0.1717** | 0.5253 | 0.7344 | 0.4747 | 0.6515 |
+
+### Run hygiene
+
+| lang | attempted | scored | failure rate | failure types |
+|---|---|---|---|---|
+| en | 200 | 200 | **0.0000** | none |
+| hi | 200 | 198 | 0.0100 | reasoning_truncation x2 |
+| mr | 200 | 198 | 0.0100 | reasoning_truncation x2 |
+
+**Zero HTTP 429** (run #1 had 41) and truncations down from 62 to 4, confirming
+the backoff and token-budget fixes. Downgraded verdicts: 0. Invalid citations:
+**0** -- the anti-fabrication rule never had to fire, i.e. the model never
+attempted to cite a passage id it was not given.
+
+Failed calls are EXCLUDED from A/B/C rather than fail-open scored, and dropped
+from all three systems alike so the comparison stays on an identical subset.
+
+### Judge latency (ms)
+
+| lang | n | P50 | P70 | P100 | mean |
+|---|---|---|---|---|---|
+| en | 200 | 738 | 851 | 44,601 | 2,576 |
+| hi | 200 | 10,496 | 14,727 | 102,540 | 12,193 |
+| mr | 200 | 3,466 | 14,236 | 78,757 | 10,371 |
+| **all** | 600 | **909** | **11,116** | **102,540** | 8,380 |
+
+### GATE VERDICT: **PASS**
+
+Clause 1 -- does B or C beat A on balanced accuracy?
+
+| lang | A (in-run) | B | C | E10 literal | C beats both |
+|---|---|---|---|---|---|
+| en | 0.5700 | 0.7250 | 0.7250 | 0.6525 | yes |
+| hi | 0.5808 | 0.6313 | 0.6414 | 0.6325 | yes |
+| mr | 0.6061 | 0.6566 | 0.6515 | 0.6100 | yes |
+
+**C beats A in all three languages under BOTH the in-run baseline and the
+literal E10 thresholds.** B beats in-run A everywhere but misses the E10 Hindi
+threshold by 0.0012 (noise); C is the production composition regardless.
+
+Clause 2 -- does the false-answer reduction justify the added latency?
+
+| lang | A falseAns | C falseAns | absolute cut | relative cut | falseRef cost |
+|---|---|---|---|---|---|
+| en | 0.8000 | 0.1600 | -0.6400 | **-80%** | +0.3300 |
+| hi | 0.6364 | 0.2424 | -0.3940 | **-62%** | +0.2727 |
+| mr | 0.5455 | 0.1717 | -0.3738 | **-69%** | +0.2829 |
+
+Yes. This eliminates 62-80% of the system's single worst weakness -- the
+false-answer rate that E12 measured at 78/65/47% -- for ~900 ms at P50. The
+cost is a ~0.27-0.33 rise in false refusals, which is the trade the
+pre-registered rule anticipated: a false answer is a hallucination, a false
+refusal is merely unhelpful.
+
+**The judge ships.**
+
+### What the PASS does NOT license
+
+The gate was about QUALITY, and only quality passed. At **P50 909 ms and P70
+11,116 ms** the judge cannot run as a synchronous inline stage: that is 6.6x
+the entire measured 137 ms RAG budget at P50, and Hindi alone is 10.5 s at P50.
+Wiring it inline as-is would take the system from 137 ms to multi-second
+responses.
+
+The deployment shape is a separate, unresolved question. Options, none yet
+measured: run it asynchronously and revise the answer; cache verdicts per
+(query, evidence-set); use a smaller/faster model for the judge; or keep it as
+an offline evaluation gate and ship the cosine guard at runtime. **This must be
+decided and measured before the judge enters the runtime path.**
+
+Note on baselines: system A measures 0.5700/0.5808/0.6061 here vs the E10
+figures of 0.6525/0.6325/0.6100 because E10 thresholds raw dense candidates
+while this harness thresholds the post-MMR top-5. Within a run A/B/C consume
+identical candidates and are directly comparable; the gate is therefore applied
+against in-run A, with E10 reported alongside for completeness. C clears both.
+
+---
+
 ## Pending / not done
 
 - **e5-base and bge-m3 comparison.** Started, then abandoned: e5-base is ~3×

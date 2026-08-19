@@ -5,12 +5,18 @@ Deadline: 2026-08-22 23:59.
 
 ---
 
-## 🔴 NEXT ACTION
+## 🔴 NEXT ACTION — decide the judge's deployment shape
 
-- [ ] **Re-run Phase 2 calibration.** Run #1 was invalid (EXPERIMENTS.md E14).
-      Needs your go-ahead, ~60-90 min:
-      `python evaluation/answerability_calibration.py --n-per-class 100 --concurrency 3 --timeout 120`
-- [ ] Then apply the pre-registered gate against **A as measured in that run**
+Phase 2 gate **PASSED** (EXPERIMENTS.md E15): C beats A in all three languages,
+false answers cut 62-80%. But judge latency is **P50 909 ms / P70 11.1 s** vs a
+137 ms total RAG budget, so it cannot go inline unchanged.
+
+- [ ] Pick one, then measure it:
+      (a) async - answer from cosine, revise if the judge disagrees
+      (b) cache verdicts per (query, evidence-set)
+      (c) smaller/faster judge model
+      (d) offline eval gate only; cosine guard stays at runtime
+- [ ] Only then start Phase 3 generation
 
 ---
 
@@ -48,6 +54,10 @@ Deadline: 2026-08-22 23:59.
 - [x] Pushed to https://github.com/adii-madhavi/hhgoa-mando-rag (`main`)
 - [x] `requirements.txt` regenerated from AST scan of real imports; `datasets`
       and `pandas` dropped (unused); all 16 packages pinned and verified
+- [x] **Phase 2 calibration run #2 (600 calls) - VALID, GATE PASSED.**
+      trustworthy in all 3 languages; 0 rate-limit failures. C balAcc
+      0.7250/0.6414/0.6515 vs A 0.5700/0.5808/0.6061; false answers
+      0.80->0.16 en, 0.64->0.24 hi, 0.55->0.17 mr. Latency P50 909ms.
 - [x] **Phase 2 calibration run #1 (600 calls) - INVALID.** 103/600 judge
       calls failed and concentrated on one class by call order, inflating
       English false-answer 0.2034 -> 0.5300. Gate NOT applied, Phase 3 NOT

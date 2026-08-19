@@ -1,7 +1,7 @@
 # MANDO — Project State
 
-**Status: Phase 2 run #1 INVALID (methodology bug, fixed). Re-run required.**
-**Phase 3 NOT unlocked.**
+**Status: Phase 2 COMPLETE. Gate PASSED on quality.**
+**Phase 3 unlocked, but NOT started - judge deployment shape unresolved (see below).**
 Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
@@ -63,7 +63,7 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Language detection | 95.4% overall · en 1.000 · hi 0.996 · **mr 0.866** |
 | Latency | **TOTAL RAG P50 137.45 ms**, P70 149.84, P100 289.07 (360 requests) |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
-| Answerability judge | Phase 1 built + 70 tests. **Smoke-tested live (n=5/class); full calibration pending.** |
+| Answerability judge | **Gate PASSED** (E15). C balAcc 0.7250/0.6414/0.6515 vs A 0.5700/0.5808/0.6061; false answers cut 62-80%. Latency P50 909 ms blocks inline use. |
 | Dependencies | `requirements.txt` regenerated from an AST scan of actual imports; `datasets` + `pandas` removed (nothing imports them), all 16 pinned |
 
 ### Known weakness, quantified
@@ -101,7 +101,44 @@ Measured only by `evaluation/konkani_product_eval.py` (stamped
 
 ---
 
-## Phase 2 — RUN #1 INVALID. GATE NOT APPLIED. PHASE 3 NOT UNLOCKED.
+## Phase 2 — RUN #2: VALID. GATE **PASSED**.
+
+`results_trustworthy` = True for all three languages (failure rate 0.00 / 0.01 /
+0.01, threshold 0.02). Zero HTTP 429; 4 reasoning truncations total, down from
+62. Downgraded verdicts 0, invalid citations 0.
+
+| lang | A balAcc | B balAcc | C balAcc | A falseAns | **C falseAns** |
+|---|---|---|---|---|---|
+| en | 0.5700 | 0.7250 | **0.7250** | 0.8000 | **0.1600** |
+| hi | 0.5808 | 0.6313 | **0.6414** | 0.6364 | **0.2424** |
+| mr | 0.6061 | **0.6566** | 0.6515 | 0.5455 | **0.1717** |
+
+Judge latency: P50 **909 ms** · P70 **11,116 ms** · P100 102,540 ms.
+
+**Clause 1 PASSES:** C beats A in all three languages, under both the in-run
+baseline and the literal E10 thresholds.
+**Clause 2 PASSES:** false answers cut 62-80% relative (the system's worst
+weakness), for +0.27-0.33 false refusals.
+
+**VERDICT: PASS. The judge ships.**
+
+### The PASS was about QUALITY only
+
+At P50 909 ms / P70 11.1 s the judge **cannot** be a synchronous inline stage:
+that is 6.6x the entire measured 137 ms RAG budget at P50, and Hindi alone is
+10.5 s at P50. Wiring it inline as-is turns a 137 ms system into a multi-second
+one.
+
+Deployment shape is unresolved and unmeasured. Options: async revise-after-answer,
+cache verdicts per (query, evidence-set), a smaller/faster judge model, or keep
+it as an offline eval gate with the cosine guard at runtime. **Decide and
+measure before the judge enters the runtime path.**
+
+Full detail: EXPERIMENTS.md E15. Run #1 (invalid) preserved as E14.
+
+---
+
+## Phase 2 — RUN #1 INVALID (superseded by run #2)
 
 600 calls completed, but **103 failed** (41 HTTP 429 + 62 reasoning-truncation)
 and the failures were **not random**. The harness processed all positives then
