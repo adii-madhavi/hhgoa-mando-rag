@@ -11,3 +11,4 @@ data/*.json
 *.npy
 .pytest_cache/
 .DS_Store
+COMMITMSG.tmp
