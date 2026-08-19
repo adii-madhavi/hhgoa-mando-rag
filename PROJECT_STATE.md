@@ -1,7 +1,7 @@
 # MANDO — Project State
 
 **Status: Phase 3 COMPLETE. Mando generation live in EN/HI/MR.**
-**Blocker: generation latency P50 15.4 s (English). Voice UX not viable yet.**
+**Generation latency reduced 15.4 s -> 4.3 s P50 (E17). Tail still bad (P100 65 s).**
 Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
@@ -27,7 +27,7 @@ the blocker for a voice product.
 
 | blocker | blocks | effect |
 |---|---|---|
-| **Generation latency** | a viable voice UX | **P50 15.4 s (en)**, min 9.4 s. `sarvam-105b` is a reasoning model spending ~900 tokens thinking before writing. Try a non-reasoning model / streaming. E16 |
+| **Generation tail** | a reliable voice UX | P50 now **4.3 s** (E17) but P100 hit **65 s**. Needs a hard client deadline + degradation path, not a better median. |
 | **`SARVAM_API_KEY`** | Phases 5–7, 10 | No STT, no TTS, no voice-loop latency |
 
 `LLM_API_KEY` is present and working. Judge latency is RESOLVED as a blocker:
@@ -66,7 +66,8 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Cross-lingual | Tested and **refuted** (mr→en 0.223 vs 0.416) → not enabled |
 | Language detection | 95.4% overall · en 1.000 · hi 0.996 · **mr 0.866** |
 | Latency (extractive, E11) | RAG P50 **137.45 ms**, P70 149.84, P100 289.07 (360 requests) |
-| Latency (with LLM, E16) | retrieval core **21.5-53.5 ms** P50 · generation **0.6-15.4 s** P50 · judge async, excluded |
+| Latency (with LLM, E16/E17) | retrieval core **22-50 ms** P50 · generation **4.3 s** P50 (en, after model switch) · judge async, excluded |
+| Generation model | **sarvam-105b-conversations** (non-reasoning). 3.6x faster than sarvam-105b with quality held: grounded 0.86-0.88, correct language, valid citations - E17 |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
 | Generation (Phase 3) | LLMGenerator on shared ChatClient, strict schema, citation validation. Live in en/hi/mr: grounded, correct language, valid citations. **P50 15.4 s (en)** - E16 |
 | Judge deployment | **ASYNC** - inline cost 0.0 ms in every request; background P50 5.9 s excluded by construction |

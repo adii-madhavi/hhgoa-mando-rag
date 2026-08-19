@@ -1,27 +1,31 @@
 # MANDO — TODO
 
-**FROZEN pending `LLM_API_KEY`.** See `PROJECT_STATE.md` for full status.
+Source of truth alongside `PROJECT_STATE.md`. Update both after every major task.
 Deadline: 2026-08-22 23:59.
+
+Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
 
 ---
 
-## 🔴 NEXT ACTION — generation latency blocks the voice product
+## 🔴 NEXT ACTION — the latency TAIL, and Sarvam credentials
 
-Phase 3 is complete and measured (E16). Retrieval core holds at 21.5-53.5 ms
-P50 and the judge is off the critical path (inline 0.0 ms). But **LLM
-generation is P50 15.4 s in English** (min 9.4 s), so a voice turn is currently
-~15 s.
+Generation median is fixed (E17): switching to the non-reasoning
+`sarvam-105b-conversations` cut English P50 **15.4 s -> 4.3 s** with quality
+held (grounded 0.86-0.88, correct language, valid citations).
 
-- [ ] Decide how to make generation viable, then measure:
-      (a) try a NON-reasoning model - sarvam-105b spends ~900 tokens thinking
-          before writing, which is most of the 15 s
-      (b) stream the answer so first-audio starts early
-      (c) lower max_tokens (risks the truncation bug -- verify)
-- [ ] Only then Phase 5/6 (Sarvam STT/TTS) and Phase 8 (UI)
+Remaining problems, in order:
 
-Note: hi/mr generation percentiles in E16 are contaminated by refusals
-(gen=0 ms). Refusals were en 1/10, hi 4/10, mr 8/10 -- English is the only
-clean generation figure.
+- [ ] **Tail latency.** P100 hit **65 s** on a Marathi call; async judge P100
+      127 s. Needs a hard client-side deadline + degradation path, not a better
+      median.
+- [ ] **Streaming** so first-audio starts before the full answer is ready --
+      the single biggest perceived-latency win for voice.
+- [ ] **`SARVAM_API_KEY`** to unblock Phases 5-7, 10 (STT, TTS, voice loop).
+
+Honest position on the 200 ms target: only the **retrieval core** (22-50 ms
+P50) is inside it. Generation is ~4.3 s, roughly 20x over, and the voice loop
+adds two more network round trips on top. These are reported as separate
+numbers and never merged.
 
 ---
 
@@ -37,37 +41,6 @@ clean generation figure.
 - [x] Judge async by default + deterministic VerdictCache
 - [x] Same-language enforcement (warn, never refuse a correct answer)
 - [x] 237 tests passing (was 177)
-
----
-
-## 🔴 SUPERSEDED — judge deployment shape (RESOLVED: async + cache)
-
-Phase 2 gate **PASSED** (EXPERIMENTS.md E15): C beats A in all three languages,
-false answers cut 62-80%. But judge latency is **P50 909 ms / P70 11.1 s** vs a
-137 ms total RAG budget, so it cannot go inline unchanged.
-
-- [ ] Pick one, then measure it:
-      (a) async - answer from cosine, revise if the judge disagrees
-      (b) cache verdicts per (query, evidence-set)
-      (c) smaller/faster judge model
-      (d) offline eval gate only; cosine guard stays at runtime
-- [ ] Only then start Phase 3 generation
-
----
-
-## 🔴 NEEDS A DECISION FROM YOU
-
-- [ ] **Judge latency**: p50 907 ms en but **12 s hi**, p100 50–61 s (timeout is
-      20 s). Before the 600-call run, pick one:
-      (a) raise timeout to ~60 s and accept a 1–3 h run,
-      (b) add concurrency to the calibration harness,
-      (c) cap `--n-per-class` lower.
-      Separately: at ~1 s+ per call the judge cannot sit in a 200 ms budget —
-      it may be an offline/eval tool rather than a runtime stage.
-- [ ] **Provide `SARVAM_API_KEY`** → unblocks Phases 5–7, 10 (voice)
-- [ ] *(optional, later)* Konkani speaker to author the 25–50 product questions
-      in `data/konkani_product_eval.jsonl` — currently template placeholders,
-      and the script refuses to run until replaced
 
 ---
 
@@ -103,31 +76,7 @@ false answers cut 62-80%. But judge latency is **P50 909 ms / P70 11.1 s** vs a
 
 ---
 
-## ⏸ NEXT — the moment the LLM key lands
-
-**Phase 2 — calibration (the gate)**
-
-```bash
-python evaluation/answerability_calibration.py --n-per-class 100
-```
-
-- [ ] Decide the latency question above FIRST
-- [ ] Run A/B/C on en, hi, mr (Konkani → explicit N/A row)
-- [ ] Apply the **pre-registered** rule: judge ships only if B or C beats A's
-      balanced accuracy (0.6525 / 0.6325 / 0.6100) **and** the false-answer
-      reduction justifies the latency
-- [ ] Write measured results into `EXPERIMENTS.md` E13
-- [ ] **If the gate fails → the judge does not ship.** Report that plainly and
-      keep the cosine guard.
-
----
-
 ## Then, in order (each gated on the previous)
-
-**Phase 3 — Mando generation** *(only if Phase 2 passes)*
-- [ ] Migrate `generator.py` onto the shared `llm_client`
-- [ ] Wire the persona; answer in the user's language, evidence-only
-- [ ] Verify the persona never overrides factuality
 
 **Phase 4 — grounding verification**
 - [ ] Structured `{grounded, supported_passage_ids, confidence}`
@@ -159,7 +108,7 @@ python evaluation/answerability_calibration.py --n-per-class 100
 - [ ] State plainly that voice E2E will exceed 200 ms — two network round trips
 
 **Phase 11 — final testing**
-- [ ] Keep all 172 passing; add live-API failure/timeout/retry cases
+- [ ] Keep all 237 passing; add live-API failure/timeout/retry cases
 
 ---
 

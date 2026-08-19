@@ -101,7 +101,7 @@ class ChatClient:
             or os.environ.get("SARVAM_API_KEY")
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
                          or "https://api.sarvam.ai/v1").rstrip("/")
-        self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b")
+        self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b-conversations")
         self.timeout_s = timeout_s
         self.max_http_attempts = max_http_attempts
         self.available = bool(self.api_key)

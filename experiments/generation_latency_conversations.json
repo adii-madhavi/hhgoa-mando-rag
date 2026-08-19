@@ -1,0 +1,133 @@
+{
+  "config": {
+    "model": "sarvam-105b-conversations",
+    "n_per_language": 10,
+    "judge_mode": "async",
+    "index": {
+      "model": "e5-small",
+      "hf_id": "intfloat/multilingual-e5-small",
+      "dim": 384,
+      "strategy": "fixed",
+      "langs": [
+        "en",
+        "hi",
+        "mr"
+      ],
+      "n_passages": 59961,
+      "n_chunks": 72411,
+      "mean_chunk_chars": 278.3,
+      "offline_seconds": {
+        "chunking": 0.2,
+        "embedding": 1865.1,
+        "qdrant_upsert": null
+      },
+      "note": "offline build; not counted in runtime latency"
+    }
+  },
+  "note": "generation is an LLM network round trip; it is NOT part of the 137 ms retrieval core measured in E11",
+  "per_language": {
+    "en": {
+      "n": 10,
+      "refusals": 2,
+      "retrieval_critical_path_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 49.7,
+        "p70": 52.9,
+        "p100": 84.3,
+        "mean": -439.2,
+        "min": -4879.9
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 4320.5,
+        "p70": 4879.9,
+        "p100": 5124.2,
+        "mean": 4075.3,
+        "min": 2309.5
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 3907.4,
+        "p70": 4770.8,
+        "p100": 5172.5,
+        "mean": 3636.1,
+        "min": 0.0
+      }
+    },
+    "hi": {
+      "n": 10,
+      "refusals": 6,
+      "retrieval_critical_path_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 40.1,
+        "p70": 50.4,
+        "p100": 69.0,
+        "mean": -1315.0,
+        "min": -5033.8
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 3943.5,
+        "p70": 4476.7,
+        "p100": 5807.6,
+        "mean": 3340.4,
+        "min": 0.0
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 2902.4,
+        "p70": 3592.5,
+        "p100": 5876.6,
+        "mean": 2025.4,
+        "min": 0.0
+      }
+    },
+    "mr": {
+      "n": 10,
+      "refusals": 8,
+      "retrieval_critical_path_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 22.2,
+        "p70": 47.7,
+        "p100": 58.8,
+        "mean": -752.0,
+        "min": -5929.7
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 1862.9,
+        "p70": 4477.2,
+        "p100": 5929.7,
+        "mean": 1941.8,
+        "min": 0.0
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 10,
+        "p50": 22.2,
+        "p70": 2477.6,
+        "p100": 4777.2,
+        "mean": 1189.8,
+        "min": 0.0
+      }
+    }
+  },
+  "judge_async_ms": {
+    "measured": true,
+    "n": 23,
+    "p50": 4544.5,
+    "p70": 5377.4,
+    "p100": 127568.1,
+    "mean": 9773.2,
+    "min": 2519.7
+  },
+  "judge_async_note": "background verification; excluded from total_rag_ms by construction"
+}

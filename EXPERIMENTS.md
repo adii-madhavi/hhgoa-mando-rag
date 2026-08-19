@@ -1003,6 +1003,67 @@ faster here, and that is the next thing to measure.
 
 ---
 
+## E17 — Generation model: the reasoning tokens were pure overhead
+
+**Command:** `LLM_MODEL=sarvam-105b-conversations python evaluation/generation_latency.py --n 10`
+**Raw:** `experiments/generation_latency_conversations.json`
+
+E16 left a 15.4 s P50 generation blocker. The Sarvam API's deprecation notice
+had named **two** replacement models and only one had been tested. The second
+turned out to be non-reasoning.
+
+### Direct comparison, same prompt, 3 calls each
+
+| model | median latency | completion tokens | `reasoning_content` |
+|---|---|---|---|
+| `sarvam-105b` | 13,422 ms | 787–1,182 | **2,658–4,253 chars** |
+| **`sarvam-105b-conversations`** | **1,910 ms** | 41 | **0** |
+
+### Full harness, 30 queries each
+
+| lang | generation P50 — reasoning | generation P50 — conversations | speedup |
+|---|---|---|---|
+| en | 15,376.6 ms | **4,320.5 ms** | **3.6x** |
+| hi | 4,284.9 ms | 3,943.5 ms | 1.1x |
+| mr | 606.0 ms* | 1,862.9 ms* | — |
+
+\* Marathi refused 8/10 in both runs, so its percentiles measure refusals, not
+generation. Not a usable comparison; recorded rather than quietly dropped.
+
+Retrieval core was unchanged, as expected: 22.2–49.7 ms P50.
+
+### Quality was checked before switching, not assumed
+
+A faster model that answers worse is not an improvement. Live check, all three
+languages:
+
+| lang | grounded | grounding score | language match | citations | invalid |
+|---|---|---|---|---|---|
+| en | ✅ | 0.8766 | ✅ | [1] | none |
+| hi | ✅ | 0.8605 | ✅ | [1, 5] | none |
+| mr | ✅ | 0.8643 | ✅ | [1] | none |
+
+The persona also survived — the English answer scoped itself honestly without
+being asked to: *"Beyond that, my sources don't give more detail on their
+travel speed."*
+
+**Decision: default `LLM_MODEL=sarvam-105b-conversations`.** The reasoning
+model spent 2,600–4,300 characters of `reasoning_content` deliberating over
+what is fundamentally an extract-and-phrase task, and that deliberation bought
+no measurable quality on these metrics while costing 3.6x the latency.
+
+### What this does NOT fix
+
+The **tail**. A Marathi call in the quality check took **65,132 ms** on the
+conversations model, and the async judge P100 was 127,568 ms in the same run.
+Median latency improved 3.6x; the worst case did not. A voice product needs a
+hard client-side deadline and a degradation path, not just a better median.
+
+Generation is still ~4 s P50, which is **20x the 200 ms target**. The sub-200 ms
+claim remains scoped strictly to the retrieval core, exactly as in E16.
+
+---
+
 ## Pending / not done
 
 - **e5-base and bge-m3 comparison.** Started, then abandoned: e5-base is ~3×
