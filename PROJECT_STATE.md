@@ -6,6 +6,7 @@
 **Refusals now speak; hard deadlines added to every voice-path network call; voice-loop benchmark BLOCKED at n=7/120 by Sarvam account credit exhaustion -- see E20.**
 **Frontend (Google AI Studio export) integrated at frontend/index.html, served by FastAPI at "/"; real integration bugs fixed (transcript field, fallback-question bug, language codes) -- see the "Frontend integration" commit.**
 **FINAL HARDENING PASS (this task): found and fixed a real production bug -- app.main's deployed pipeline never wired the answerability judge despite it being the documented production shape (E15/E16/E20). Fixed; 377 tests pass. Sarvam account now has ZERO credits for BOTH TTS and LLM generation (HTTP 402 on every real call) -- live demo verification beyond schema/failure-path checks is blocked until credits are topped up.**
+**FINAL PRODUCTION READINESS PASS (this task): full audit of judge wiring, streaming safety, SSE exception-safety, CORS, Docker, and secrets -- all already correct, nothing else found. See "Final production readiness pass" below and DEMO_CHECKLIST.md. 377/377 tests, no code changes needed beyond this doc + checklist.**
 Last updated: 2026-08-20 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
@@ -54,6 +55,49 @@ this pass, is now actually wired into the deployed app** (see below; it
 previously was not).
 The Sarvam STT/TTS clients remain verified against published contracts but
 never exercised live successfully in this session (credits exhausted).
+
+### Final production readiness pass (this task)
+
+Audited, found nothing new to fix -- everything below was ALREADY CORRECT
+and is left untouched, per the "if already correct, don't touch it"
+instruction:
+
+- **Judge wiring**: `AnswerabilityJudge` inspected end-to-end -- async mode,
+  `VerdictCache` claim/put/release lifecycle, background-thread exception
+  handling (caught, logged, cache key released so a retry can happen; never
+  crashes the pool), `shutdown(wait=False)` closes it cleanly. Bounded by
+  the Phase-10 `retry_deadline_s` on the shared `ChatClient`. DONE, VERIFIED
+  by code inspection + the existing `TestAsyncJudge`/`TestJudgeUnavailable`
+  suites; the 600-call calibration was NOT rerun, per instruction.
+- **Streaming safety**: `_stream_body()` in both `text.py` and `voice.py`
+  only ever iterates over an ALREADY-COMPUTED, already-guarded
+  `RAGResponse` -- `pipeline.run()` fully completes (with its own internal
+  exception handling) before any SSE frame is emitted, so no external-API
+  exception can occur mid-stream. `reasoning_content` is filtered by name in
+  `ChatClient.stream_chat()`, never yielded. Malformed upstream frames are
+  skipped (`TestStreamTransport::test_malformed_frames_are_skipped`). DONE,
+  VERIFIED by `tests/test_streaming.py` (30 tests) and
+  `tests/test_api_v1.py::TestSSE`.
+- **Exception safety**: `app.exception_handler(Exception)` in `app/main.py`
+  catches everything at the FastAPI level and returns a generic error, never
+  a traceback, covering the mounted `/api/*` router too.
+- **CORS**: `allow_origins=["*"]` with `allow_credentials` left at its
+  default `False` -- a valid combination (the invalid one is `*` origins
+  WITH credentials=True, which is not this).
+- **Docker/deployment**: `Dockerfile` copies `frontend/` into the image (so
+  `/` serves correctly in a container), bakes the embedding model, correct
+  `HEALTHCHECK` against `/health`. `requirements.txt` has `python-multipart`
+  pinned and commented as required for the voice multipart upload.
+- **Full-repo secret scan** (not just the diff): zero matches for API-key
+  patterns across every tracked file. `.env` confirmed untracked and
+  ignored.
+
+Added `DEMO_CHECKLIST.md` -- a concrete run-through with each item marked
+DONE / VERIFIED / BLOCKED BY CREDITS / NOT LIVE-TESTED, per instruction not
+to claim anything was tested live that wasn't. No further live Sarvam calls
+were made this pass, per the "don't repeatedly call Sarvam while credits are
+exhausted" instruction -- the account's zero-credit state was already
+confirmed in the prior pass and has not been re-checked.
 
 ### Resolved this task (Final Hardening Pass)
 

@@ -7,9 +7,19 @@ Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
 
 ---
 
-## 🔴 NEXT ACTION — top up Sarvam credits (LLM AND TTS), then re-run the voice-loop benchmark
+## 🔴 NEXT ACTION — top up Sarvam credits (LLM AND TTS), then run DEMO_CHECKLIST.md
 
-**DONE this pass (Final Hardening):**
+**DONE this pass (Final Production Readiness):** full audit of judge
+wiring, streaming/SSE exception-safety, CORS, Docker, and a complete
+repository secret scan (not just the diff) -- everything checked was
+already correct, nothing new to fix. Added `DEMO_CHECKLIST.md` with an
+honest DONE/VERIFIED/BLOCKED-BY-CREDITS/NOT-LIVE-TESTED breakdown per item.
+No new live Sarvam calls made (account already known to be at zero
+credits). 377/377 tests still passing, no code changes this pass beyond
+docs. See PROJECT_STATE.md's "Final production readiness pass" section for
+the full list of what was checked and found already correct.
+
+**DONE in the prior pass (Final Hardening):**
 - [x] Fixed a real production bug: `app/main.py` never wired the
       answerability judge into the deployed pipeline (it was documented as
       the production shape since E15/E16 but only ever ran inside eval
