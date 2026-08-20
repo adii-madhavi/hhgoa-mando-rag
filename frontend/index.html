@@ -1462,6 +1462,26 @@
         transition-duration: 0.01ms !important;
       }
     }
+
+    /* Visible keyboard focus in both themes -- accessibility hardening.
+       Mouse/touch users never see this (:focus-visible only fires for
+       keyboard/programmatic focus in modern browsers). */
+    :focus-visible {
+      outline: 2px solid var(--gold-primary);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    .composer-text-input:focus-visible {
+      outline: none; /* the dock's own focus-within ring already shows this */
+    }
+
+    /* Visually hidden but announced by screen readers -- standard pattern,
+       used where a visible placeholder already carries the visual hint but
+       an input still needs a real accessible label. */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
   </style>
 </head>
 <body>
@@ -1551,7 +1571,7 @@
           </div>
 
           <!-- Theme Switch -->
-          <button class="top-btn" title="Theme Switch" onclick="toggleThemeQuick()">
+          <button class="top-btn" title="Theme Switch" aria-label="Switch theme" onclick="toggleThemeQuick()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
           </button>
         </div>
@@ -1573,7 +1593,9 @@
           <!-- Mando Interactive Spotlight Card -->
           <div class="mando-mobile-spotlight" id="mando-home-card">
             <div class="mando-spotlight-head">
-              <div class="mando-avatar-touch" onclick="toggleMandoSpeech()" title="Tap to listen to Mando">
+              <div class="mando-avatar-touch" onclick="toggleMandoSpeech()" title="Tap to listen to Mando"
+                   role="button" tabindex="0" aria-label="Listen to Mando's answer"
+                   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleMandoSpeech();}">
                 <svg viewBox="0 0 100 100" class="mando-svg-avatar">
                   <rect width="100" height="100" fill="#2d170a"/>
                   <path d="M12 100 C12 75, 34 67, 50 67 C66 67, 88 75, 88 100 Z" fill="#1b4d58"/>
@@ -1624,7 +1646,7 @@
                     <span>How it works ⚙️</span>
                   </button>
                 </div>
-                <div class="mando-state-desc" id="mando-state-label">
+                <div class="mando-state-desc" id="mando-state-label" role="status" aria-live="polite">
                   <span class="status-dot"></span>
                   <span>Ask me anything about Goa</span>
                 </div>
@@ -1841,7 +1863,7 @@
             <!-- User Query Bubble -->
             <div class="user-query-bubble" id="conv-user-query">
               <span>💬</span>
-              <span id="user-question-text">What are the main festivals in Goa?</span>
+              <span id="user-question-text"></span>
             </div>
 
             <!-- Mando Answer Card -->
@@ -1870,20 +1892,18 @@
 
               <!-- Main Answer Text -->
               <div class="mando-answer-body" id="mando-answer-text">
-                Goa is renowned for its rich cultural celebrations that blend indigenous Konkan traditions with Portuguese heritage:<br><br>
-                🎉 <strong>Feast of São João (June 24)</strong> – Joyous monsoon festival where Goans wear floral <em>kopels</em>, sing folk songs, and leap into wells.<br>
-                🎭 <strong>Shigmo (Shigmotsav)</strong> – Traditional spring festival of colors featuring <em>Ghode Modni</em> warrior dances and grand street parades.<br>
-                ✨ <strong>Goa Carnival (February)</strong> – Vibrant pre-Lenten parade led by King Momo with music, dance, and floats.<br>
-                🎄 <strong>Christmas & New Year</strong> – Lit with star lanterns, midnight masses at historic churches, and midnight bonfire traditions.<br>
-                🪔 <strong>Diwali & Narkasur</strong> – Giant effigies of demon Narkasur are crafted and burned on the eve of Diwali across villages.
+                Ask Mando a question to see a real, sourced answer here.
               </div>
+
+              <!-- Backend TTS unavailability, shown unobtrusively when relevant -->
+              <div id="audio-unavailable-note" style="display:none; font-size:11.5px; color:var(--text-muted); margin-top:-4px;"></div>
 
               <!-- Sources Bar -->
               <div class="answer-sources-bar" onclick="openBottomSheet('sheet-sources')">
                 <div class="sources-left">
                   <span>📚</span>
                   <span>Verified Sources</span>
-                  <span class="sources-count-badge" id="sources-count-num">4</span>
+                  <span class="sources-count-badge" id="sources-count-num">0</span>
                 </div>
                 <span style="font-size:11.5px; color:var(--gold-primary); font-weight:600;">View citations →</span>
               </div>
@@ -1896,13 +1916,13 @@
                 </button>
 
                 <div class="action-icons-group">
-                  <button class="icon-act-btn" title="Bookmark" onclick="bookmarkAnswer()">
+                  <button class="icon-act-btn" title="Bookmark" aria-label="Save this answer" onclick="bookmarkAnswer()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   </button>
-                  <button class="icon-act-btn" title="Copy text" onclick="copyAnswer()">
+                  <button class="icon-act-btn" title="Copy text" aria-label="Copy answer text" onclick="copyAnswer()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
-                  <button class="icon-act-btn" title="Helpful" onclick="rateAnswer(true)">
+                  <button class="icon-act-btn" title="Helpful" aria-label="Mark answer as helpful" onclick="rateAnswer(true)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
                   </button>
                 </div>
@@ -2014,21 +2034,22 @@
     <div class="sticky-composer-wrap">
       <div class="composer-inner-dock">
         <!-- Language Trigger Button -->
-        <button class="lang-selector-btn" onclick="openBottomSheet('sheet-lang')" title="Change Language">
+        <button class="lang-selector-btn" onclick="openBottomSheet('sheet-lang')" title="Change Language" aria-label="Change language" aria-haspopup="dialog">
           <span id="active-lang-code">AUTO</span>
           <span style="font-size:8px;">▼</span>
         </button>
 
         <!-- Main Query Input -->
-        <input type="text" id="mobile-query-input" class="composer-text-input" placeholder="Ask Mando about Goa..." onkeydown="if(event.key==='Enter') submitComposerQuery()">
+        <label for="mobile-query-input" class="sr-only">Ask Mando a question about Goa</label>
+        <input type="text" id="mobile-query-input" class="composer-text-input" placeholder="Ask Mando about Goa..." aria-label="Ask Mando a question about Goa" onkeydown="if(event.key==='Enter') submitComposerQuery()">
 
         <!-- Voice Mic Button -->
-        <button class="composer-action-btn mic-btn-main" id="mobile-mic-btn" title="Voice Input" onclick="toggleVoiceRecording()">
+        <button class="composer-action-btn mic-btn-main" id="mobile-mic-btn" title="Voice Input" aria-label="Ask by voice" onclick="toggleVoiceRecording()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
         </button>
 
         <!-- Send Button -->
-        <button class="composer-action-btn send-btn-main" title="Send" onclick="submitComposerQuery()">
+        <button class="composer-action-btn send-btn-main" title="Send" aria-label="Send question" onclick="submitComposerQuery()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
       </div>
@@ -2076,32 +2097,16 @@
     <!-- ==========================================================================
        BOTTOM SHEET 1: SOURCES & CITATIONS
        ========================================================================== -->
-    <div class="bottom-sheet-overlay" id="sheet-sources" onclick="if(event.target===this) closeBottomSheet('sheet-sources')">
+    <div class="bottom-sheet-overlay" id="sheet-sources" role="dialog" aria-modal="true" aria-labelledby="sheet-sources-title" onclick="if(event.target===this) closeBottomSheet('sheet-sources')">
       <div class="bottom-sheet-card">
         <div class="sheet-drag-handle"></div>
         <div class="sheet-header-row">
-          <div class="sheet-title">📚 Verified Sources</div>
-          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-sources')">✕</button>
+          <div class="sheet-title" id="sheet-sources-title">📚 Verified Sources</div>
+          <button class="sheet-close-btn" aria-label="Close sources" onclick="closeBottomSheet('sheet-sources')">✕</button>
         </div>
 
         <div class="sources-detailed-list" id="sheet-sources-content">
-          <div class="source-detail-card">
-            <div class="source-detail-title">Goan Cultural Heritage Archives</div>
-            <div class="source-detail-origin">🏛️ Directorate of Art & Culture Goa · Govt of Goa</div>
-            <div class="source-detail-text">Documented records of traditional feasts, São João rituals, kopels, and monsoon folklore.</div>
-          </div>
-
-          <div class="source-detail-card">
-            <div class="source-detail-title">Festivals of Goa: Rhythms and Rituals</div>
-            <div class="source-detail-origin">📖 Goan Ethnomusicology & Folklore Study</div>
-            <div class="source-detail-text">Historical analysis of Siolim boat parade, ghumot rhythms, dulpod folk verses and community harmony.</div>
-          </div>
-
-          <div class="source-detail-card">
-            <div class="source-detail-title">Archaeological Survey of India (ASI)</div>
-            <div class="source-detail-origin">⛪ Goa Circle Monograph</div>
-            <div class="source-detail-text">Monuments of Old Goa, UNESCO World Heritage citations, and preservation archives.</div>
-          </div>
+          <p style="font-size:13px;color:var(--text-muted);padding:8px 4px;">Ask Mando a question -- the sources it actually used will appear here.</p>
         </div>
       </div>
     </div>
@@ -2109,12 +2114,12 @@
     <!-- ==========================================================================
        BOTTOM SHEET 2: RAG JOURNEY (HOW MANDO ANSWERED)
        ========================================================================== -->
-    <div class="bottom-sheet-overlay" id="sheet-rag" onclick="if(event.target===this) closeBottomSheet('sheet-rag')">
+    <div class="bottom-sheet-overlay" id="sheet-rag" role="dialog" aria-modal="true" aria-labelledby="sheet-rag-title" onclick="if(event.target===this) closeBottomSheet('sheet-rag')">
       <div class="bottom-sheet-card">
         <div class="sheet-drag-handle"></div>
         <div class="sheet-header-row">
-          <div class="sheet-title">⚙️ How Mando Answered</div>
-          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-rag')">✕</button>
+          <div class="sheet-title" id="sheet-rag-title">⚙️ How Mando Answered</div>
+          <button class="sheet-close-btn" aria-label="Close" onclick="closeBottomSheet('sheet-rag')">✕</button>
         </div>
 
         <div class="rag-steps-vertical">
@@ -2122,7 +2127,7 @@
             <div class="step-icon-circle">💬</div>
             <div class="step-content">
               <div class="step-title">1. Question Received</div>
-              <div class="step-desc" id="rag-step-q-label">"What are the main festivals in Goa?"</div>
+              <div class="step-desc" id="rag-step-q-label"></div>
             </div>
           </div>
 
@@ -2172,12 +2177,12 @@
     <!-- ==========================================================================
        BOTTOM SHEET 3: THEME & SETTINGS
        ========================================================================== -->
-    <div class="bottom-sheet-overlay" id="sheet-theme" onclick="if(event.target===this) closeBottomSheet('sheet-theme')">
+    <div class="bottom-sheet-overlay" id="sheet-theme" role="dialog" aria-modal="true" aria-labelledby="sheet-theme-title" onclick="if(event.target===this) closeBottomSheet('sheet-theme')">
       <div class="bottom-sheet-card">
         <div class="sheet-drag-handle"></div>
         <div class="sheet-header-row">
-          <div class="sheet-title">🎨 Appearance & Audio</div>
-          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-theme')">✕</button>
+          <div class="sheet-title" id="sheet-theme-title">🎨 Appearance & Audio</div>
+          <button class="sheet-close-btn" aria-label="Close appearance settings" onclick="closeBottomSheet('sheet-theme')">✕</button>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:12px;">
@@ -2199,6 +2204,16 @@
             <button class="stage-pill-btn" onclick="setSpeechSpeed(1.25)">1.25x (Faster)</button>
             <button class="stage-pill-btn" onclick="setSpeechSpeed(1.5)">1.5x (Fast)</button>
           </div>
+
+          <div style="font-size:12px; font-weight:700; color:var(--text-dim); margin-top:8px;">SPOKEN ANSWERS</div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-main); cursor:pointer;">
+            <input type="checkbox" id="autoplay-toggle" onchange="setAutoplayPreference(this.checked)"
+                   style="width:18px; height:18px;">
+            Automatically read answers aloud when no recorded voice reply is available
+          </label>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-top:-6px;">
+            Off by default. A real spoken answer from Mando always plays when one comes back from your voice question; this only controls the browser's own read-aloud fallback for text questions.
+          </div>
         </div>
       </div>
     </div>
@@ -2206,12 +2221,12 @@
     <!-- ==========================================================================
        BOTTOM SHEET 4: LANGUAGE SELECTOR
        ========================================================================== -->
-    <div class="bottom-sheet-overlay" id="sheet-lang" onclick="if(event.target===this) closeBottomSheet('sheet-lang')">
+    <div class="bottom-sheet-overlay" id="sheet-lang" role="dialog" aria-modal="true" aria-labelledby="sheet-lang-title" onclick="if(event.target===this) closeBottomSheet('sheet-lang')">
       <div class="bottom-sheet-card">
         <div class="sheet-drag-handle"></div>
         <div class="sheet-header-row">
-          <div class="sheet-title">🌐 Select Language</div>
-          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-lang')">✕</button>
+          <div class="sheet-title" id="sheet-lang-title">🌐 Select Language</div>
+          <button class="sheet-close-btn" aria-label="Close language selector" onclick="closeBottomSheet('sheet-lang')">✕</button>
         </div>
 
         <div class="lang-options-grid">
@@ -2245,22 +2260,38 @@
      JAVASCRIPT LOGIC
      ========================================================================== -->
   <script>
+    // Escapes untrusted text (user queries, model answers, retrieved
+    // evidence, saved answers, transcripts -- anything that ultimately came
+    // from a user or the backend, never from a literal in this file) before
+    // it is interpolated into an innerHTML template. Every innerHTML call
+    // below that touches such content routes through this first; static,
+    // developer-authored markup does not need it.
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // BCP-47 tags for SpeechSynthesisUtterance.lang, matching the real
+    // backend language codes (docs/api-v1.md: en/hi/mr/kok). Browser voice
+    // availability for hi-IN/mr-IN varies by platform; startSpeech() already
+    // fails gracefully (onerror -> stop speaking state) when a browser has
+    // no matching voice, rather than forcing an English voice on non-English
+    // text.
+    const SPEECH_LANG_MAP = { en: 'en-IN', hi: 'hi-IN', mr: 'mr-IN', kok: 'kok-IN' };
+
     // State management
     let activeTab = 'home';
-    let currentQuery = "What are the main festivals in Goa?";
-    let currentAnswer = `Goa is renowned for its rich cultural celebrations that blend indigenous Konkan traditions with Portuguese heritage:
-
-🎉 Feast of São João (June 24) – Joyous monsoon festival where Goans wear floral kopels, sing folk songs, and leap into wells.
-🎭 Shigmo (Shigmotsav) – Traditional spring festival of colors featuring Ghode Modni warrior dances and grand street parades.
-✨ Goa Carnival (February) – Vibrant pre-Lenten parade led by King Momo with music, dance, and floats.
-🎄 Christmas & New Year – Lit with star lanterns, midnight masses at historic churches, and midnight bonfire traditions.
-🪔 Diwali & Narkasur – Giant effigies of demon Narkasur are crafted and burned on the eve of Diwali across villages.`;
-    
-    let currentSources = [
-      { source: "Goan Cultural Heritage Archives · Directorate of Art & Culture Goa", text: "Records of traditional feasts, São João rituals, kopels, and monsoon folklore." },
-      { source: "Festivals of Goa: Rhythms and Rituals · Dr. Maria Couto", text: "Analysis of Siolim boat parade, ghumot rhythms, dulpod folk verses." },
-      { source: "Archaeological Survey of India (ASI) · Goa Circle Monograph", text: "Monuments of Old Goa and UNESCO World Heritage citations." }
-    ];
+    // Honest empty state -- no fabricated answer/sources are ever shown as
+    // if they were real RAG output. Populated only by renderBackendResponse()
+    // from an actual API response.
+    let currentQuery = "";
+    let currentAnswer = "";
+    let currentAnswerLang = "en";
+    let currentSources = [];
 
     let isSpeaking = false;
     let isRecording = false;
@@ -2273,6 +2304,17 @@
     // backend rejects them with 422 -- so they were replaced with the
     // languages the API actually accepts.
     let activeLanguage = 'auto';
+
+    // Browser text-to-speech is OPT IN, off by default: a normal text answer
+    // must never unexpectedly start speaking. Real backend-synthesized audio
+    // (Sarvam TTS, returned for a voice question) is unaffected by this --
+    // that is the actual voice feature the user asked for and always plays.
+    let autoplayEnabled = localStorage.getItem('hhgoa_autoplay_speech') === '1';
+
+    function setAutoplayPreference(enabled) {
+      autoplayEnabled = !!enabled;
+      localStorage.setItem('hhgoa_autoplay_speech', autoplayEnabled ? '1' : '0');
+    }
 
     // 1. Navigation Tab Switching
     function switchNavTab(tabName) {
@@ -2304,8 +2346,8 @@
       currentQuery = q;
       document.getElementById('user-question-text').textContent = q;
       document.getElementById('rag-step-q-label').textContent = `"${q}"`;
-      document.getElementById('mando-state-label').innerHTML = `<span class="status-dot"></span><span>Searching archives for "${q.slice(0, 20)}..."</span>`;
-      
+      setMandoState('thinking');
+
       switchNavTab('mando');
       executeQuery(q);
     }
@@ -2349,10 +2391,15 @@
     function renderBackendResponse(data, query) {
       currentAnswer = data.answer || "No response received.";
       currentSources = data.sources || [];
+      currentAnswerLang = data.language || 'en';
 
       const answerEl = document.getElementById('mando-answer-text');
       const refused = !!(data.guardrail && data.guardrail.refused);
-      const formatted = currentAnswer.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+      // SECURITY: currentAnswer is untrusted (model output) -- escape first,
+      // THEN turn newlines into <br>. Escaping after would also neuter the
+      // <br> tags we just added, so order matters here.
+      const formatted = escapeHtml(currentAnswer)
+        .replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
       answerEl.innerHTML = refused
         ? `<span style="color:var(--gold-primary);">${formatted}</span>`
         : formatted;
@@ -2361,18 +2408,41 @@
       renderSourcesInSheet();
 
       setMandoState(refused ? 'idle' : 'success');
+      const safeQuery = escapeHtml(query);
       document.getElementById('mando-home-bubble').innerHTML = refused
-        ? `I couldn't find enough verified sources for <strong>${query}</strong>.`
-        : `Here is what I found about <strong>${query}</strong>!`;
+        ? `I couldn't find enough verified sources for <strong>${safeQuery}</strong>.`
+        : `Here is what I found about <strong>${safeQuery}</strong>!`;
+
+      renderAudioAvailability(data);
 
       // Prefer the REAL synthesized voice from the backend (Sarvam TTS) when
-      // one came back; only fall back to the browser's own speech synthesis
-      // when the backend has no audio for this response (e.g. Konkani, which
-      // has no Sarvam TTS voice -- see audio_unavailable_reason).
+      // one came back -- that IS the voice feature the user asked for, and
+      // always plays. Only fall back to the browser's own speech synthesis
+      // when the backend produced no audio for this response, and even then
+      // only if the user opted into that fallback (Appearance & Audio
+      // settings) -- a normal text answer must never unexpectedly start
+      // talking. The user can always press Listen manually either way.
       if (data.audio_base64) {
         playBackendAudio(data.audio_base64);
-      } else {
+      } else if (autoplayEnabled) {
         startSpeech();
+      }
+    }
+
+    // Surfaces audio_unavailable_reason visibly but unobtrusively (a small
+    // muted note near the Listen button), instead of silently pretending
+    // spoken audio exists when it doesn't.
+    function renderAudioAvailability(data) {
+      const note = document.getElementById('audio-unavailable-note');
+      if (!note) return;
+      if (!data.audio_base64 && data.audio_unavailable_reason) {
+        note.textContent = 'Spoken answer unavailable for this language.';
+        note.title = data.audio_unavailable_reason;
+        note.style.display = 'block';
+      } else {
+        note.style.display = 'none';
+        note.textContent = '';
+        note.removeAttribute('title');
       }
     }
 
@@ -2414,26 +2484,59 @@
       }
     }
 
-    // 3. Bottom Sheets Manager
+    // 3. Bottom Sheets Manager -- dialog semantics: move focus in on open,
+    // restore it to the trigger on close, and let Escape close the sheet.
+    let lastFocusedBeforeSheet = null;
+
     function openBottomSheet(sheetId) {
       const sheet = document.getElementById(sheetId);
-      if (sheet) sheet.classList.add('open');
+      if (!sheet) return;
+      lastFocusedBeforeSheet = document.activeElement;
+      sheet.classList.add('open');
+      const closeBtn = sheet.querySelector('.sheet-close-btn');
+      if (closeBtn) closeBtn.focus();
+      sheet.addEventListener('keydown', sheetEscapeHandler);
+    }
+
+    function sheetEscapeHandler(event) {
+      if (event.key !== 'Escape') return;
+      const sheet = event.currentTarget;
+      closeBottomSheet(sheet.id);
     }
 
     function closeBottomSheet(sheetId) {
       const sheet = document.getElementById(sheetId);
-      if (sheet) sheet.classList.remove('open');
+      if (!sheet) return;
+      sheet.classList.remove('open');
+      sheet.removeEventListener('keydown', sheetEscapeHandler);
+      if (lastFocusedBeforeSheet && document.contains(lastFocusedBeforeSheet)) {
+        lastFocusedBeforeSheet.focus();
+      }
+      lastFocusedBeforeSheet = null;
     }
 
+    // Renders the ACTUAL sources of the most recent response every time --
+    // including rendering nothing (an honest empty state) when the latest
+    // response had zero sources. Never leaves an older answer's evidence
+    // attached to a newer, sourceless response.
     function renderSourcesInSheet() {
       const container = document.getElementById('sheet-sources-content');
-      if (!container || !currentSources.length) return;
+      if (!container) return;
 
+      if (!currentSources.length) {
+        container.innerHTML =
+          '<p style="font-size:13px;color:var(--text-muted);padding:8px 4px;">' +
+          'No supporting sources were returned for this answer.</p>';
+        return;
+      }
+
+      // SECURITY: source title/origin/excerpt come from retrieved evidence
+      // (untrusted) -- escape every field.
       container.innerHTML = currentSources.map(s => `
         <div class="source-detail-card">
-          <div class="source-detail-title">${s.title || s.source || 'Cultural Heritage Archive'}</div>
-          <div class="source-detail-origin">🏛️ ${s.source || 'Goan Heritage Records'}</div>
-          <div class="source-detail-text">${s.text || 'Historical reference and verified documentation.'}</div>
+          <div class="source-detail-title">${escapeHtml(s.title || s.source || 'Cultural Heritage Archive')}</div>
+          <div class="source-detail-origin">🏛️ ${escapeHtml(s.source || 'Goan Heritage Records')}</div>
+          <div class="source-detail-text">${escapeHtml(s.text || 'Historical reference and verified documentation.')}</div>
         </div>
       `).join('');
     }
@@ -2482,9 +2585,9 @@
     }
 
     function startSpeech() {
+      // Graceful failure: no crash, no fake "speaking" state pretending
+      // audio is playing when the browser cannot actually speak this text.
       if (!('speechSynthesis' in window)) {
-        setMandoSpeaking(true);
-        setTimeout(() => setMandoSpeaking(false), 4000);
         return;
       }
 
@@ -2496,8 +2599,18 @@
       speechUtterance.rate = speechSpeed;
       speechUtterance.pitch = 1.05;
 
+      // Map the ANSWER's real language (from the backend, not just the
+      // selector) to a BCP-47 tag, and try to find a matching installed
+      // voice. Never force an English voice onto non-English text -- if no
+      // matching voice exists, `lang` alone still lets the platform's
+      // default TTS engine attempt the right pronunciation, and total
+      // failure degrades gracefully via onerror below rather than crashing
+      // or silently speaking the wrong language.
+      const targetLang = SPEECH_LANG_MAP[currentAnswerLang] || 'en-IN';
+      speechUtterance.lang = targetLang;
       const voices = window.speechSynthesis.getVoices();
-      const prefVoice = voices.find(v => (v.lang.includes('en-IN') || v.name.includes('India') || v.lang.includes('en-GB')) && !v.name.includes('Google'));
+      const prefVoice = voices.find(v => v.lang === targetLang)
+        || voices.find(v => v.lang.startsWith(targetLang.split('-')[0]));
       if (prefVoice) speechUtterance.voice = prefVoice;
 
       speechUtterance.onstart = () => setMandoSpeaking(true);
@@ -2684,11 +2797,18 @@
     }
 
     function rateAnswer(helpful) {
-      toast(helpful ? 'Thank you! Mando recorded this as helpful.' : 'Feedback noted -- thank you.');
+      // Nothing is actually persisted server-side (or client-side) for
+      // feedback -- the copy must not imply otherwise.
+      toast('Thanks for the feedback!');
     }
 
     // Saved Archives: real localStorage-backed save/view/remove/reopen, not
-    // static example cards.
+    // static example cards. Uses event delegation (data-index + one click
+    // listener) rather than embedding saved query text inside an inline
+    // onclick attribute -- a saved query containing a `"` character could
+    // otherwise break out of the HTML attribute even through
+    // JSON.stringify, since JSON's backslash-escaping means nothing to an
+    // HTML attribute parser.
     function renderSavedList() {
       const container = document.getElementById('saved-list-container');
       if (!container) return;
@@ -2699,17 +2819,46 @@
         return;
       }
 
+      // SECURITY: item.query/item.answer are untrusted (originally a user
+      // query and a model answer) -- escape both.
       container.innerHTML = saved.map((item, i) => `
         <div class="saved-item-card" style="position:relative;">
-          <div onclick="askQuestion(${JSON.stringify(item.query)})">
-            <div class="saved-item-title">${item.query}</div>
-            <div class="saved-item-snippet">${(item.answer || '').replace(/<[^>]*>/g, '').slice(0, 140)}...</div>
+          <div class="saved-item-reopen" data-index="${i}" role="button" tabindex="0"
+               aria-label="${escapeHtml('Ask again: ' + (item.query || ''))}">
+            <div class="saved-item-title">${escapeHtml(item.query)}</div>
+            <div class="saved-item-snippet">${escapeHtml((item.answer || '').replace(/<[^>]*>/g, '').slice(0, 140))}...</div>
           </div>
-          <button aria-label="Remove saved answer" onclick="event.stopPropagation(); removeSavedItem(${i})"
+          <button aria-label="Remove saved answer" data-remove-index="${i}"
                   style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;min-width:32px;min-height:32px;">✕</button>
         </div>
       `).join('');
     }
+
+    // One delegated listener for the whole saved list -- handles both
+    // "reopen" (click or Enter/Space on the card body) and "remove".
+    document.addEventListener('click', (event) => {
+      const removeBtn = event.target.closest('[data-remove-index]');
+      if (removeBtn) {
+        event.stopPropagation();
+        removeSavedItem(Number(removeBtn.dataset.removeIndex));
+        return;
+      }
+      const reopen = event.target.closest('.saved-item-reopen');
+      if (reopen) {
+        const saved = JSON.parse(localStorage.getItem('hhgoa_saved') || '[]');
+        const item = saved[Number(reopen.dataset.index)];
+        if (item) askQuestion(item.query);
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const reopen = event.target.closest && event.target.closest('.saved-item-reopen');
+      if (!reopen) return;
+      event.preventDefault();
+      const saved = JSON.parse(localStorage.getItem('hhgoa_saved') || '[]');
+      const item = saved[Number(reopen.dataset.index)];
+      if (item) askQuestion(item.query);
+    });
 
     function removeSavedItem(index) {
       const saved = JSON.parse(localStorage.getItem('hhgoa_saved') || '[]');
@@ -2723,6 +2872,25 @@
     const savedTheme = localStorage.getItem('hhgoa_theme');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
     renderSavedList();
+
+    const autoplayToggle = document.getElementById('autoplay-toggle');
+    if (autoplayToggle) autoplayToggle.checked = autoplayEnabled;
+
+    // Accessibility hardening: every plain `<div onclick="...">` used as a
+    // button throughout this file (explore/timeline/language/theme cards
+    // etc.) gets real button semantics and keyboard support in one pass,
+    // rather than hand-editing dozens of near-identical cards. Buttons,
+    // links, and anything already carrying an explicit role are left alone.
+    document.querySelectorAll('div[onclick]').forEach(el => {
+      if (el.hasAttribute('role') || el.hasAttribute('tabindex')) return;
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        el.click();
+      });
+    });
   </script>
 </body>
 </html>
