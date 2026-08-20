@@ -54,18 +54,30 @@ WAV_BYTES = b"RIFF" + b"\x00" * 4 + b"WAVEfmt " + b"\x00" * 40  # shape only
 # SarvamSTT — offline mode (no key)
 # --------------------------------------------------------------------------
 class TestSTTOffline:
-    def test_no_key_is_offline(self):
+    """
+    "Offline" means no key ANYWHERE -- not passed explicitly and not sitting
+    in the environment. SarvamSTT(api_key=None) falls back to
+    os.environ["SARVAM_API_KEY"] by design, so once a real key is present in
+    .env (as it now is, post live-check), api_key=None alone no longer forces
+    offline mode. These tests explicitly clear the env var so they test the
+    true "nothing configured" path regardless of the machine they run on.
+    """
+
+    def test_no_key_is_offline(self, monkeypatch):
+        monkeypatch.delenv("SARVAM_API_KEY", raising=False)
         c = SarvamSTT(api_key=None)
         assert c.offline is True
 
-    def test_offline_transcription_is_marked(self):
+    def test_offline_transcription_is_marked(self, monkeypatch):
+        monkeypatch.delenv("SARVAM_API_KEY", raising=False)
         c = SarvamSTT(api_key=None)
         result = c.transcribe(WAV_BYTES)
         assert result.offline is True
         assert result.text == ""
 
-    def test_offline_never_makes_a_request(self):
+    def test_offline_never_makes_a_request(self, monkeypatch):
         """No httpx client should even be constructed without a key."""
+        monkeypatch.delenv("SARVAM_API_KEY", raising=False)
         c = SarvamSTT(api_key=None)
         assert c._client is None
 
@@ -195,10 +207,14 @@ class TestTranscribeBase64:
 # SarvamTTS
 # --------------------------------------------------------------------------
 class TestTTSOffline:
-    def test_no_key_is_unavailable(self):
+    """Same env-isolation note as TestSTTOffline above."""
+
+    def test_no_key_is_unavailable(self, monkeypatch):
+        monkeypatch.delenv("SARVAM_API_KEY", raising=False)
         assert SarvamTTS(api_key=None).available is False
 
-    def test_synthesize_without_key_raises(self):
+    def test_synthesize_without_key_raises(self, monkeypatch):
+        monkeypatch.delenv("SARVAM_API_KEY", raising=False)
         with pytest.raises(TTSError):
             SarvamTTS(api_key=None).synthesize("hello", "en")
 

@@ -20,12 +20,9 @@ OUT OF SCOPE for backend work -- it will be built separately against that doc.
 
 Remaining, in order:
 
-- [ ] **`SARVAM_API_KEY`** -- still not in `.env`. Voice pipeline code is DONE
-      and mock-tested (39 tests, tests/test_voice.py); only the live call is
-      blocked. Once added, run the small live check:
-      `python evaluation/sarvam_live_check.py`
-      (2 real calls: TTS synthesizes a phrase, STT transcribes it back. Never
-      prints the key.)
+- [x] `SARVAM_API_KEY` added and live-verified (sarvam_live_check.py passed).
+- [x] E19: one small end-to-end voice validation run (see below). STOPPING
+      per instruction -- awaiting review before any further phase.
 - [ ] **Pipeline-level streaming.** `LLMGenerator.generate_stream()` is fully
       guarded and works; `RAGPipeline.run()` is still synchronous end-to-end.
       The public API's SSE endpoint currently streams the COMPLETED answer
@@ -100,7 +97,58 @@ numbers and never merged.
       Verified: currently exits correctly (no key set), makes zero network
       calls in that path.
 - [x] 360 tests passing (was 321)
-- [ ] **Not yet done: the actual live call.** Needs `SARVAM_API_KEY` in `.env`.
+- [x] **Live call done.** See E19 below.
+
+## E19 — small end-to-end voice validation (n=1 per query, NOT a benchmark)
+
+`python evaluation/voice_e2e_check.py` -- 5 real pipeline runs: 3 fixed
+queries (en/hi/mr, first answerable MSMARCO-XI query per language, Konkani
+excluded per instruction) + male/female voice check. Real Sarvam TTS
+synthesized each query's audio INPUT (no microphone), real Sarvam STT
+transcribed it, real RAGPipeline ran retrieval+guardrails+generation, real
+Sarvam TTS synthesized the spoken OUTPUT where reached.
+
+| query | transcript matched | refused | grounded | valid audio out | e2e latency |
+|---|---|---|---|---|---|
+| en | yes | No | True | **Yes** | 15,041 ms |
+| hi | yes | No | True | **Yes** | 35,046 ms |
+| mr | yes | Yes (ungrounded_answer) | False | No (never reached TTS) | 5,190 ms |
+
+Male/female voice check (same English query): both requests reached the
+pipeline with the correct `voice` param; both were refused (ungrounded_answer,
+same numeric-hard-gate cause as mr above) before reaching the TTS stage, so
+neither produced audio in THIS run -- not a voice-selection bug, the voice
+field itself was passed and used correctly.
+
+**Diagnosed, not "fixed":** mr/male/female all failed the EXISTING numeric
+grounding hard-gate (`app/guardrails/grounding.py`, the same gate that has
+caught invented numbers since early development) -- the LLM (temperature=0.3)
+volunteered a digit not present in evidence on 3 of 5 runs. This is the
+guardrail working correctly, not an integration bug; left untouched per "never
+silently downgrade grounding standards."
+
+**One real script bug found and fixed** (in the test script, not the
+pipeline): `pipeline.shutdown()` was called before the voice-check queries,
+prematurely closing the async judge pool for those two runs. Fixed (shutdown
+moved to the end). Confirmed this had zero effect on any reported result --
+every query in the script is a fresh cache miss, so the async judge never
+gates a first-time query regardless of whether the pool is alive.
+
+**One real product gap found, NOT fixed (flagged for review, out of scope):**
+`RAGPipeline` only reaches the TTS stage on the success path. Every
+`_refuse()` return exits before stage 11, so a refused voice query produces
+NO spoken audio at all -- silence, even though `resp.answer` already holds
+correct, localised refusal text. Whether refusals should be spoken is a
+product decision, not a bug fix, and this task was explicitly scoped to
+validate + diagnose, not redesign.
+
+360/360 tests passing (5 pre-existing failures were test-isolation bugs --
+"offline" tests assumed no `SARVAM_API_KEY` would ever be in the environment;
+now that one legitimately is, those 5 tests were fixed with
+`monkeypatch.delenv` to force the true offline path regardless of the host
+machine's `.env`).
+
+**STOPPING HERE per instruction. Awaiting review.**
 
 ---
 

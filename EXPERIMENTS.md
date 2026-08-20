@@ -1184,3 +1184,97 @@ is a larger change, deliberately deferred. The public API's SSE endpoint
 stable frontend contract, and says so explicitly rather than implying
 token-level latency it does not yet deliver.
 
+
+---
+
+## E19 — Voice pipeline: one small live end-to-end validation (n=1, not a benchmark)
+
+**Command:** `python evaluation/voice_e2e_check.py`
+**Scope:** exactly as instructed -- 3 fixed queries (en/hi/mr) + 1 male + 1
+female voice check. 5 real pipeline runs total. Not a benchmark; no
+percentiles are computed or implied. Konkani excluded (no MSMARCO-XI labelled
+evaluation data, per E2/E2b).
+
+Real chain exercised in both directions: Sarvam TTS synthesized each query's
+input audio (no microphone available), real Sarvam STT transcribed it, the
+real prebuilt index + `RAGPipeline` (retrieval, cosine guard, async judge,
+guarded LLM generation) processed it, and Sarvam TTS synthesized the spoken
+output where the pipeline reached that stage.
+
+### Results
+
+| query | transcript | STT ms | retrieval ms | judge (inline) ms | generation ms | TTS ms | RAG ms (excl TTS) | **e2e ms** | refused | grounded | valid audio |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| en | "What is a corporation?" | 829.0 | 52.4 | 0.0 | 4,537.6 | 9,551.2 | 5,489.5 | **15,040.8** | No | True | **Yes** |
+| hi | "कॉर्पोरेशन क्या है?" | 264.8 | 39.9 | 0.0 | 3,782.4 | 30,923.9 | 4,121.8 | **35,045.7** | No | True | **Yes** |
+| mr | "कॉर्पोरेशन म्हणजे काय?" | 916.3 | 24.8 | 0.0 | 4,148.5 | n/a | 5,189.8 | **5,189.8** | Yes (ungrounded_answer) | False | No |
+| voice=male (en) | "What is a corporation?" | 240.7 | 19.4 | 0.0 | 3,587.6 | n/a | 4,015.5 | **4,015.5** | Yes (ungrounded_answer) | False | No |
+| voice=female (en) | "What is a corporation?" | 240.5 | 113.9 | 0.0 | 3,635.7 | n/a | 4,088.0 | **4,088.0** | Yes (ungrounded_answer) | False | No |
+
+Background async judge calls this run: 3, latencies 5,055 / 3,515 / 3,251 ms
+-- excluded from RAG ms and e2e ms by construction (E16 architecture), exactly
+as designed. Inline judge cost was 0.0 ms in all 5 requests.
+
+STT correctly transcribed all 5 real audio inputs verbatim, in all three
+scripts (Latin, Devanagari for both hi and mr).
+
+### Diagnosis of the 3 refusals -- guardrail working correctly, not a bug
+
+All three refusals (mr, voice=male, voice=female) hit the pre-existing numeric
+grounding hard-gate in `app/guardrails/grounding.py` (`verify_grounding`,
+which compares digits in the generated answer against digits in the retrieved
+evidence -- the same mechanism that has caught invented numbers like `1873`
+and `42` earlier in this project). `LLMGenerator` runs at `temperature=0.3`,
+so wording varies run to run; on 3 of 5 runs for the *same* underlying
+question the model volunteered a digit ('5', '3') absent from evidence, and
+the gate correctly refused rather than let an unsupported number through. The
+identical question succeeded cleanly on its first real run (en, this table's
+first row). **Not fixed** -- relaxing this gate would violate the project's
+standing rule to never silently downgrade grounding standards, and the
+variance is expected LLM behaviour, not an integration defect.
+
+### One real script bug found and fixed (in the validation script, not the pipeline)
+
+`evaluation/voice_e2e_check.py` originally called `pipeline.shutdown()`
+before running the two voice-selection queries, closing the async judge
+thread pool early for those two requests. Fixed by moving the shutdown call
+to the very end. **Confirmed zero effect on any reported result**: every
+query in this script is a first-time cache miss (`VerdictCache` keys on
+normalized query + evidence-id set), and the async judge only gates a
+*repeated* identical query via cache hit -- it never gates a first-time query
+regardless of whether the background pool is alive. Not re-run after the fix,
+to keep this a single small validation rather than a second live-API spend.
+
+### One real product gap found, NOT fixed -- flagged for review
+
+`RAGPipeline.run()` only reaches stage 11 (TTS) on the success path; every
+`_refuse()` call returns before that point. So **a refused voice query
+currently produces no spoken audio at all** -- silence -- even though
+`resp.answer` already holds correct, language-matched refusal text
+(confirmed: mr/male/female all had non-empty, correctly-localised
+`resp.answer`, just `resp.audio_base64=None`). This is a genuine voice-UX
+gap for a product where every other response speaks. Whether refusals should
+be synthesized is a product decision, not a bug fix, and this task was
+explicitly scoped to validate and diagnose only -- not redesign. Left for
+review.
+
+### Honest latency statement
+
+Every figure above is a single real measurement (n=1 per query), not a
+percentile from a benchmark -- Phase 10's 100+-query voice-loop benchmark is
+explicitly a separate, larger task, not performed here. **No claim is made
+that any of these figures meet the 200 ms target.** The only latency inside
+that target anywhere in this project remains the retrieval-only core measured
+in E11/E16 (22-137 ms P50 depending on generator). RAG latency (excluding
+TTS) and full end-to-end voice latency (including TTS) are kept as visibly
+separate columns above, never merged into one number.
+
+### Test suite
+
+360/360 passing. 5 pre-existing tests failed on first run after this task
+began -- not a pipeline defect, a test-isolation bug: `TestSTTOffline` /
+`TestTTSOffline` assumed `api_key=None` always means offline, but both Sarvam
+clients fall back to `os.environ["SARVAM_API_KEY"]` by design, and that
+variable is now genuinely set in `.env`. Fixed with `monkeypatch.delenv` so
+those tests force the true "nothing configured anywhere" path independent of
+the host machine's `.env` state.

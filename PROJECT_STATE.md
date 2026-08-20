@@ -13,10 +13,13 @@ every major task.
 built separately against `docs/api-v1.md`. Do not create/modify frontend/,
 React/Next.js, HTML, CSS, or Mando visual assets from the backend side.
 
-Phases 1-3 complete. Voice pipeline wiring (Sarvam STT -> RAGPipeline ->
-guarded generation -> Sarvam TTS) is BUILT and MOCK-TESTED (39 tests). It has
-NEVER been exercised live: `.env` has `LLM_API_KEY` but **no `SARVAM_API_KEY`**.
-UI remains out of scope for backend work.
+Phases 1-3 complete. Voice pipeline (Sarvam STT -> RAGPipeline -> guarded
+generation -> Sarvam TTS) is BUILT, MOCK-TESTED (39 tests), and NOW LIVE-
+VALIDATED end-to-end with real Sarvam + LLM calls (3 fixed queries + 2 voice
+checks, n=1 each -- not a benchmark). 2/3 languages produced a grounded,
+audible answer; the numeric grounding gate correctly refused the other 2
+query variants when the LLM volunteered an unsupported digit. UI remains out
+of scope for backend work.
 
 ---
 
@@ -37,7 +40,8 @@ for a voice product.
 |---|---|---|
 | **Generation tail** | a reliable voice UX | Streaming (E18) gives TTFV P50 **391 ms** -- 10.7x better PERCEIVED latency -- but total generation is still ~4.2s P50, 9.4s P100. A 20s hard deadline is now enforced client-side (`LLMGenerator.deadline_s`); Marathi hit it 4/12 times in the benchmark, always cleanly (refusal, never a broken partial answer). |
 | **Pipeline-level streaming** | true mid-generation SSE through the guarded chain | Streaming exists at `LLMGenerator.generate_stream()` (fully guarded: citations validated, evidence-only). `RAGPipeline.run()` itself is still synchronous end-to-end -- deliberately deferred, larger change. Public API's SSE today streams the COMPLETED answer word-chunked, documented as such in docs/api-v1.md. |
-| **`SARVAM_API_KEY`** | live STT/TTS, Phase 10 voice-loop latency | Not in `.env`. Voice pipeline code is complete and mock-tested (`tests/test_voice.py`, 39 tests) but has never made a real Sarvam call. Live check ready: `python evaluation/sarvam_live_check.py` -- currently exits cleanly with no key rather than fabricating a result. |
+| **Voice-loop latency, at scale** | Phase 10 (100+ query benchmark) | Single-run figures only exist so far (E19, n=1/query): en e2e 15.0s, hi e2e 35.0s (TTS alone hit 30.9s once). No percentiles yet -- that is explicitly Phase 10, not this task. |
+| **Refusals produce no spoken audio** | voice UX completeness | Found during E19: `RAGPipeline` only reaches the TTS stage on the SUCCESS path; every `_refuse()` return exits before stage 11, so a refused voice query is answered with `resp.audio_base64=None` -- silence, even though `resp.answer` already holds correctly-localised refusal text. Not fixed (a real design decision, not a bug fix, and out of this task's explicit scope). Flagged for your review.
 
 `LLM_API_KEY` is present and working. Judge latency is RESOLVED as a blocker:
 it runs async with a verdict cache, measured inline cost 0.0 ms.
@@ -80,7 +84,8 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Generation model | **sarvam-105b-conversations** (non-reasoning). 3.6x faster than sarvam-105b with quality held: grounded 0.86-0.88, correct language, valid citations - E17 |
 | Streaming (E18) | TTFT P50 **246ms** / TTFV P50 **391ms** (10.7x perceived-latency win) / generation P50 4,175ms P100 9,430ms. Deadline refusal rate 11.1% (all Marathi), failure rate 0.0%. Hard 20s wall-clock deadline enforced; incomplete-answer marking never trusts citations from a truncated stream. |
 | Public API v1 | `app/api/v1/` -- thin adapter over `RAGPipeline`, internal `RAGResponse` unmodified. 4 endpoints, content-negotiated JSON/SSE, multipart voice upload. 35 tests assert schema isolation (no internal field/secret ever serialized). Documented in `docs/api-v1.md`. |
-| Voice pipeline (STT+TTS) | Sarvam STT -> RAGPipeline -> guarded generation -> Sarvam TTS is fully wired (`app/pipeline.py` Stage.stt/Stage.tts) and was already structurally correct from an earlier phase. 39 NEW mocked tests added (request shape, retry/4xx-vs-5xx classification, Konkani-TTS rejection, full round trip, TTS-failure-is-non-fatal, STT-failure-refuses-cleanly). **Never run against the live API** -- no `SARVAM_API_KEY` in `.env`. |
+| Voice pipeline (STT+TTS), mocked | Sarvam STT -> RAGPipeline -> guarded generation -> Sarvam TTS is fully wired (`app/pipeline.py` Stage.stt/Stage.tts). 39 mocked tests (request shape, retry/4xx-vs-5xx classification, Konkani-TTS rejection, full round trip, TTS-failure-is-non-fatal, STT-failure-refuses-cleanly). |
+| **Voice pipeline, LIVE (E19)** | 5 real end-to-end runs (3 fixed queries en/hi/mr + male/female voice check), real Sarvam STT+TTS + real LLM generation, existing prebuilt index (not rebuilt). en: full success, grounded=True, valid audio out, e2e 15,041ms. hi: full success, grounded=True, valid audio out, e2e 35,046ms (TTS alone: 30,924ms -- real network variance, not a bug). mr + both voice-check runs: correctly refused by the EXISTING numeric grounding hard-gate (LLM volunteered an unsupported digit at temperature=0.3) -- guardrail behaving as designed, not relaxed. Male and female voice selection both reached the pipeline correctly (voice param passed through); neither produced audio in this run because both were refused before the TTS stage. |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
 | Generation (Phase 3) | LLMGenerator on shared ChatClient, strict schema, citation validation. Live in en/hi/mr: grounded, correct language, valid citations |
 | Judge deployment | **ASYNC** - inline cost 0.0 ms in every request; background P50 5.9 s excluded by construction |
