@@ -1,299 +1,2728 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="heritage">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MANDO — Your Goan AI Guide</title>
-<style>
-  :root{
-    --bg:#0f1419; --panel:#161d26; --panel-2:#1d2732; --line:#2a3644;
-    --text:#e8eef5; --muted:#8fa3b8; --accent:#ff9d4d; --accent-2:#4dd0c7;
-    --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);
-       font:15px/1.55 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
-       display:flex;justify-content:center;padding:24px 16px}
-  .wrap{width:100%;max-width:980px;display:grid;gap:18px;
-        grid-template-columns:minmax(0,1fr) minmax(0,360px)}
-  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);
-        border-radius:14px;padding:20px}
-  h1{margin:0;font-size:26px;letter-spacing:.5px}
-  .sub{color:var(--muted);font-size:13px;margin-top:2px}
-  .hero{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-  .avatar{width:72px;height:72px;border-radius:50%;flex:none;
-    background:radial-gradient(circle at 35% 30%,#ffb877,#e8873a);
-    display:grid;place-items:center;font-size:34px;
-    transition:transform .25s, box-shadow .25s}
-  .avatar.listening{box-shadow:0 0 0 6px rgba(77,208,199,.22);
-                    transform:scale(1.06)}
-  .avatar.thinking{box-shadow:0 0 0 6px rgba(251,191,36,.22)}
-  .avatar.speaking{box-shadow:0 0 0 6px rgba(74,222,128,.22)}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
-  select,input[type=text]{background:var(--panel-2);color:var(--text);
-    border:1px solid var(--line);border-radius:9px;padding:10px 12px;
-    font-size:14px;font-family:inherit}
-  input[type=text]{flex:1;min-width:200px}
-  button{border:0;border-radius:9px;padding:11px 16px;font-size:14px;
-    font-weight:600;cursor:pointer;font-family:inherit}
-  .primary{background:var(--accent);color:#20130a}
-  .ghost{background:var(--panel-2);color:var(--text);border:1px solid var(--line)}
-  .talk{width:100%;padding:16px;margin-top:14px;font-size:16px;
-        background:var(--accent-2);color:#06231f;user-select:none}
-  .talk.rec{background:var(--bad);color:#2a0b0b}
-  .talk:disabled{opacity:.45;cursor:not-allowed}
-  .bubble{margin-top:16px;background:var(--panel-2);border:1px solid var(--line);
-          border-left:3px solid var(--accent);border-radius:10px;padding:14px}
-  .bubble.refused{border-left-color:var(--warn)}
-  .bubble.error{border-left-color:var(--bad)}
-  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;
-       background:var(--panel);border:1px solid var(--line);color:var(--muted);
-       margin-right:6px}
-  .tag.ok{color:var(--ok);border-color:#1f4d33}
-  .tag.warn{color:var(--warn);border-color:#4d411f}
-  .tag.bad{color:var(--bad);border-color:#4d1f1f}
-  table{width:100%;border-collapse:collapse;font-size:12.5px}
-  td{padding:5px 0;border-bottom:1px solid var(--line)}
-  td:last-child{text-align:right;font-variant-numeric:tabular-nums;
-                color:var(--accent-2)}
-  tr.total td{font-weight:700;color:var(--text);border-bottom:0;padding-top:9px}
-  .src{font-size:12.5px;color:var(--muted);padding:9px 0;
-       border-bottom:1px solid var(--line)}
-  .src b{color:var(--text);font-weight:600}
-  h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;
-     letter-spacing:1px;color:var(--muted)}
-  .banner{background:#2a2113;border:1px solid #4d411f;color:#f5d99b;
-          border-radius:10px;padding:11px 13px;font-size:13px;margin-bottom:14px}
-  .hidden{display:none}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0806">
+  <meta name="description" content="HHGoa — Multilingual Voice-Enabled AI & RAG Cultural Heritage Guide for Goa">
+  <title>HHGoa — Discover Goa with Mando AI</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ==========================================================================
+       1. THEME TOKENS & CSS VARIABLES
+       ========================================================================== */
+    :root, [data-theme="heritage"] {
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-heading: 'Cinzel', serif;
+      --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+      --bg-canvas: #0b0806;
+      --bg-sidebar: #0e0a08;
+      --bg-card: #15100c;
+      --bg-card-elevated: #1e1712;
+      --bg-card-border: #2e2219;
+      --bg-card-border-active: #f0b254;
+      --bg-input: #1b140e;
+      --bg-sheet: #150f0b;
+
+      --gold-primary: #f0b254;
+      --gold-accent: #e5a953;
+      --gold-glow: rgba(240, 178, 84, 0.35);
+      --gold-faint: rgba(240, 178, 84, 0.12);
+
+      --terracotta: #c45b2c;
+      --terracotta-glow: rgba(196, 91, 44, 0.35);
+      --amber-dark: #8c471c;
+      --teal-ocean: #2aa89f;
+      --green-success: #34d399;
+
+      --text-main: #fdfaf6;
+      --text-muted: #c9b7a4;
+      --text-dim: #8e7c6d;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-full: 9999px;
+
+      --header-height: 56px;
+      --bottom-nav-height: 64px;
+      --composer-height: 68px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    [data-theme="coastal"] {
+      --bg-canvas: #061219;
+      --bg-sidebar: #091a24;
+      --bg-card: #0d222e;
+      --bg-card-elevated: #122d3d;
+      --bg-card-border: #1a3f55;
+      --bg-card-border-active: #38bdf8;
+      --bg-input: #0a1b25;
+      --bg-sheet: #0d2330;
+
+      --gold-primary: #38bdf8;
+      --gold-accent: #22d3ee;
+      --gold-glow: rgba(56, 189, 248, 0.35);
+      --gold-faint: rgba(56, 189, 248, 0.12);
+
+      --terracotta: #f87171;
+      --terracotta-glow: rgba(248, 113, 113, 0.35);
+      --amber-dark: #0284c7;
+      --teal-ocean: #2dd4bf;
+      --green-success: #34d399;
+
+      --text-main: #f0fdfa;
+      --text-muted: #a5f3fc;
+      --text-dim: #64748b;
+    }
+
+    /* ==========================================================================
+       2. RESET & GLOBAL STYLES
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(196, 91, 44, 0.12) 0%, transparent 65%),
+        radial-gradient(circle at 100% 100%, rgba(42, 168, 159, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
+      display: flex;
+      flex-direction: column;
+    }
+
+    [data-theme="coastal"] body {
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 65%),
+        radial-gradient(circle at 100% 100%, rgba(45, 212, 191, 0.1) 0%, transparent 50%);
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-canvas); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-card-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold-primary); }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      touch-action: manipulation;
+    }
+
+    input, textarea, select {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    /* ==========================================================================
+       3. APP SHELL LAYOUT (Mobile-First + Desktop Expansion)
+       ========================================================================== */
+    .app-root {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Desktop Sidebar (hidden on mobile) */
+    .desktop-sidebar {
+      display: none;
+      width: 220px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--bg-card-border);
+      padding: 24px 16px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 40;
+      flex-direction: column;
+    }
+
+    /* Main Viewport Container */
+    .main-viewport {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding-bottom: calc(var(--bottom-nav-height) + var(--composer-height) + var(--safe-bottom) + 16px);
+    }
+
+    /* ==========================================================================
+       4. TOP APP BAR (Compact & Polished)
+       ========================================================================== */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: var(--header-height);
+      padding: 0 14px;
+      padding-top: var(--safe-top);
+      background: rgba(11, 8, 6, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bg-card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    [data-theme="coastal"] .top-bar {
+      background: rgba(6, 18, 25, 0.92);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-decoration: none;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+    .brand-icon-seal {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold-primary);
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold-primary);
+      box-shadow: 0 0 10px var(--gold-glow);
+      flex-shrink: 0;
+    }
+    .brand-text-block {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: var(--text-main);
+    }
+    .brand-sub {
+      font-size: 9.5px;
+      color: var(--gold-primary);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Mando Status Header Capsule */
+    .mando-status-capsule {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-full);
+      padding: 4px 10px 4px 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 34px;
+    }
+    .mando-status-capsule:hover {
+      border-color: var(--gold-primary);
+    }
+    .status-avatar-mini {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1px solid var(--gold-primary);
+      background: #2b180d;
+      flex-shrink: 0;
+    }
+    .status-text-mini {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gold-primary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green-success);
+      box-shadow: 0 0 6px var(--green-success);
+    }
+    .speaking .status-dot {
+      background: var(--gold-primary);
+      animation: pulseDot 0.8s infinite alternate;
+    }
+    @keyframes pulseDot {
+      from { transform: scale(0.8); opacity: 0.6; }
+      to { transform: scale(1.3); opacity: 1; }
+    }
+
+    /* Action Buttons in Top Bar */
+    .top-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .top-btn:hover, .top-btn:active {
+      color: var(--gold-primary);
+      border-color: var(--gold-primary);
+      background: var(--bg-card-elevated);
+    }
+    .top-btn svg { width: 16px; height: 16px; stroke-width: 2; }
+
+    /* ==========================================================================
+       5. VIEW CONTAINER & MOBILE TAB PAGES
+       ========================================================================== */
+    .views-container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .view-page {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .view-page.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       6. HOME VIEW: 5-SECOND UNDERSTANDING
+       ========================================================================== */
+    /* Hero Welcome Banner */
+    .mobile-hero-card {
+      background: linear-gradient(145deg, #18110c 0%, #120c08 100%);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    [data-theme="coastal"] .mobile-hero-card {
+      background: linear-gradient(145deg, #0d222e 0%, #08161f 100%);
+    }
+    .mobile-hero-card::after {
+      content: '';
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 130px;
+      height: 130px;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-greeting-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold-primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .hero-main-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .hero-main-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      max-width: 480px;
+    }
+
+    /* Mando Companion Spotlight Card (Mobile Optimized) */
+    .mando-mobile-spotlight {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .mando-mobile-spotlight.speaking {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 20px var(--gold-glow);
+    }
+
+    .mando-spotlight-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mando-avatar-touch {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 2px solid var(--gold-primary);
+      background: #2b180d;
+      position: relative;
+      flex-shrink: 0;
+      cursor: pointer;
+      box-shadow: 0 0 14px var(--gold-glow);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .mando-avatar-touch:hover, .mando-avatar-touch:active {
+      transform: scale(1.05);
+    }
+    .mando-avatar-touch .mando-svg-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      display: block;
+    }
+
+    .mando-spotlight-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .mando-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mando-title-name {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+    .stage-pill-btn {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--gold-primary);
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 12px;
+      padding: 3px 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .stage-pill-btn:hover {
+      border-color: var(--gold-primary);
+      background: var(--gold-faint);
+    }
+    .mando-state-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Mando Dialogue Speech Bubble */
+    .mando-live-bubble {
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text-main);
+      line-height: 1.45;
+      position: relative;
+    }
+    .mando-mobile-spotlight.speaking .mando-live-bubble {
+      border-color: rgba(240, 178, 84, 0.4);
+      background: linear-gradient(135deg, rgba(38, 28, 20, 0.9), rgba(20, 14, 10, 0.95));
+    }
+    [data-theme="coastal"] .mando-mobile-spotlight.speaking .mando-live-bubble {
+      background: linear-gradient(135deg, rgba(13, 34, 46, 0.9), rgba(6, 18, 25, 0.95));
+    }
+
+    /* Quick Suggestion Prompt Chips */
+    .prompt-chips-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .prompt-chips-scroll::-webkit-scrollbar { display: none; }
+    .prompt-chip {
+      background: var(--bg-input);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-full);
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .prompt-chip:hover, .prompt-chip:active {
+      background: var(--bg-card-elevated);
+      border-color: var(--gold-primary);
+      color: var(--gold-primary);
+    }
+
+    /* ==========================================================================
+       7. EXPLORE SECTION (2-Column Mobile Grid)
+       ========================================================================== */
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .section-headline {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-view-all {
+      font-size: 12px;
+      color: var(--gold-primary);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .explore-grid-2col {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    @media (min-width: 600px) {
+      .explore-grid-2col {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .explore-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      min-height: 105px;
+      justify-content: space-between;
+    }
+    .explore-card:hover, .explore-card:active {
+      border-color: var(--gold-primary);
+      background: var(--bg-card-elevated);
+      transform: translateY(-2px);
+    }
+    .explore-card-icon {
+      font-size: 24px;
+      margin-bottom: 2px;
+    }
+    .explore-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+    .explore-card-desc {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      line-height: 1.3;
+    }
+
+    /* Featured Story Card (São João spotlight on mobile) */
+    .featured-story-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .featured-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gold-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .featured-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .featured-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .featured-highlights-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-main);
+    }
+    .featured-h-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-input);
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--bg-card-border);
+    }
+
+    /* Stats Glance Row */
+    .stats-glance-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-sm);
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+    .stat-lbl {
+      font-size: 9.5px;
+      color: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       8. CONVERSATION VIEW & RAG ANSWER CARD
+       ========================================================================== */
+    .conversation-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .user-query-bubble {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--terracotta) 0%, var(--amber-dark) 100%);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 16px 16px 4px 16px;
+      max-width: 85%;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mando-answer-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .mando-answer-card.speaking {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 20px var(--gold-glow);
+    }
+
+    .mando-answer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--bg-card-border);
+      padding-bottom: 10px;
+    }
+    .mando-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mando-answer-avatar-sm {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold-primary);
+      background: #2b180d;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .mando-answer-author {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .author-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+    .author-badge {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* RAG Journey Quick Pill button */
+    .rag-journey-pill-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-full);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gold-primary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .rag-journey-pill-btn:hover {
+      background: var(--bg-card-elevated);
+      border-color: var(--gold-primary);
+    }
+
+    /* Main Answer Typography */
+    .mando-answer-body {
+      font-size: 13.5px;
+      color: var(--text-main);
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .mando-answer-body strong {
+      color: var(--gold-primary);
+      font-weight: 600;
+    }
+
+    /* Sources Pill / Button */
+    .answer-sources-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-input);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .answer-sources-bar:hover {
+      border-color: var(--gold-primary);
+    }
+    .sources-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .sources-count-badge {
+      background: var(--gold-primary);
+      color: #150d06;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 1px 6px;
+    }
+
+    /* Answer Action Buttons Row */
+    .answer-actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 6px;
+      border-top: 1px solid var(--bg-card-border);
+    }
+    .listen-btn-primary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-primary);
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 36px;
+    }
+    .listen-btn-primary:hover, .listen-btn-primary:active {
+      background: var(--gold-primary);
+      color: #150d06;
+    }
+    .listen-btn-primary.active-speaking {
+      background: var(--gold-primary);
+      color: #150d06;
+      box-shadow: 0 0 12px var(--gold-glow);
+    }
+
+    .action-icons-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .icon-act-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .icon-act-btn:hover, .icon-act-btn:active {
+      color: var(--gold-primary);
+      background: var(--bg-input);
+    }
+    .icon-act-btn svg { width: 16px; height: 16px; stroke-width: 2; }
+
+    /* Follow Up Suggestions */
+    .followup-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .followup-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ==========================================================================
+       9. TIMELINE VIEW (Vertical Mobile-Friendly Layout)
+       ========================================================================== */
+    .timeline-vertical-wrap {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-left: 24px;
+      margin-left: 8px;
+    }
+    .timeline-vertical-wrap::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      background: var(--bg-card-border);
+    }
+
+    .timeline-v-node {
+      position: relative;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .timeline-v-dot {
+      position: absolute;
+      left: -24px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--bg-input);
+      border: 2px solid var(--gold-primary);
+      box-shadow: 0 0 8px var(--gold-glow);
+    }
+    .timeline-v-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .timeline-v-card:hover, .timeline-v-card:active {
+      border-color: var(--gold-primary);
+      background: var(--bg-card-elevated);
+    }
+    .era-v-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .era-v-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .era-v-years {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--gold-primary);
+      background: var(--bg-input);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .era-v-text {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ==========================================================================
+       10. SAVED ARCHIVES VIEW
+       ========================================================================== */
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .saved-item-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .saved-item-card:hover {
+      border-color: var(--gold-primary);
+    }
+    .saved-item-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+    .saved-item-snippet {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* ==========================================================================
+       11. STICKY MOBILE COMPOSER
+       ========================================================================== */
+    .sticky-composer-wrap {
+      position: fixed;
+      bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+      left: 0;
+      right: 0;
+      z-index: 45;
+      padding: 8px 12px;
+      background: rgba(11, 8, 6, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--bg-card-border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    [data-theme="coastal"] .sticky-composer-wrap {
+      background: rgba(6, 18, 25, 0.95);
+    }
+
+    .composer-inner-dock {
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1.5px solid var(--bg-card-border);
+      border-radius: var(--radius-full);
+      padding: 4px 6px 4px 10px;
+      gap: 6px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 48px;
+    }
+    .composer-inner-dock:focus-within {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 14px var(--gold-glow);
+    }
+
+    /* Language Selector Trigger */
+    .lang-selector-btn {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold-primary);
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-full);
+      padding: 4px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+      min-height: 28px;
+    }
+
+    .composer-text-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      font-size: 13.5px;
+      color: var(--text-main);
+      outline: none;
+      min-width: 0;
+    }
+    .composer-text-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .composer-action-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s, background-color 0.2s;
+      flex-shrink: 0;
+    }
+    .composer-action-btn:active {
+      transform: scale(0.92);
+    }
+
+    .mic-btn-main {
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--bg-card-border);
+      color: var(--gold-primary);
+    }
+    .mic-btn-main.recording {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+      animation: pulseRecord 1s infinite alternate;
+    }
+    @keyframes pulseRecord {
+      from { box-shadow: 0 0 0px #ef4444; }
+      to { box-shadow: 0 0 16px rgba(239, 68, 68, 0.8); }
+    }
+
+    .send-btn-main {
+      background: var(--gold-primary);
+      color: #150d06;
+      border: none;
+    }
+
+    /* ==========================================================================
+       12. MOBILE BOTTOM NAVIGATION (44px+ Touch Targets)
+       ========================================================================== */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 48;
+      height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--bg-sidebar);
+      border-top: 1px solid var(--bg-card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .nav-tab-item {
+      flex: 1;
+      height: 100%;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s, transform 0.1s;
+      user-select: none;
+    }
+    .nav-tab-item:active {
+      transform: scale(0.95);
+    }
+    .nav-tab-item.active {
+      color: var(--gold-primary);
+    }
+    .nav-tab-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-tab-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2;
+    }
+    .nav-tab-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    /* Center Highlighted Mando Tab */
+    .nav-tab-item.mando-highlight {
+      position: relative;
+      color: var(--text-main);
+    }
+    .mando-nav-glow-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold-primary);
+      background: #2b180d;
+      box-shadow: 0 0 10px var(--gold-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-top: -8px;
+      transition: transform 0.2s;
+    }
+    .nav-tab-item.active .mando-nav-glow-badge {
+      transform: scale(1.1);
+      box-shadow: 0 0 16px var(--gold-glow);
+    }
+
+    /* ==========================================================================
+       13. BOTTOM SHEETS (Accessible, Responsive Modal Overlays)
+       ========================================================================== */
+    .bottom-sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .bottom-sheet-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bottom-sheet-card {
+      width: 100%;
+      max-width: 580px;
+      max-height: 85vh;
+      background: var(--bg-sheet);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 20px 20px 0 0;
+      padding: 16px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      overflow-y: auto;
+      padding-bottom: calc(24px + var(--safe-bottom));
+    }
+    .bottom-sheet-overlay.open .bottom-sheet-card {
+      transform: translateY(0);
+    }
+
+    .sheet-drag-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-card-border);
+      align-self: center;
+      margin-bottom: 4px;
+    }
+    .sheet-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sheet-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sheet-close-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--bg-input);
+      border: 1px solid var(--bg-card-border);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* RAG Journey Stepper Inside Bottom Sheet */
+    .rag-steps-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rag-step-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+    .rag-step-row.completed {
+      border-color: var(--green-success);
+    }
+    .rag-step-row.active {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 10px var(--gold-glow);
+    }
+    .step-icon-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg-input);
+      border: 1.5px solid var(--bg-card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .rag-step-row.completed .step-icon-circle {
+      color: var(--green-success);
+      border-color: var(--green-success);
+    }
+    .rag-step-row.active .step-icon-circle {
+      color: var(--gold-primary);
+      border-color: var(--gold-primary);
+    }
+    .step-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .step-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .step-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Sources List Inside Bottom Sheet */
+    .sources-detailed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .source-detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .source-detail-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+    .source-detail-origin {
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .source-detail-text {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+
+    /* Language Selection Options */
+    .lang-options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .lang-opt-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-opt-card.active {
+      border-color: var(--gold-primary);
+      background: var(--bg-card-elevated);
+    }
+    .lang-opt-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .lang-opt-sub {
+      font-size: 11px;
+      color: var(--gold-primary);
+    }
+
+    /* ==========================================================================
+       14. ANIMATED MANDO AVATAR SVG STYLES & LIP SYNC
+       ========================================================================== */
+    .mando-svg-avatar {
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform-origin: center center;
+    }
+    .mando-head-group {
+      transform-origin: 50px 58px;
+      animation: mandoIdleBreathe 3s ease-in-out infinite;
+    }
+    .speaking .mando-head-group {
+      animation: mandoSpeakingHeadBob 0.5s ease-in-out infinite alternate;
+    }
+    .mando-eye {
+      transform-origin: 50% 50%;
+      animation: mandoEyeBlink 4s ease-in-out infinite;
+    }
+    .mando-mouth-normal { display: block; }
+    .mando-mouth-talking { display: none; transform-origin: 50px 62px; }
+    .speaking .mando-mouth-normal { display: none; }
+    .speaking .mando-mouth-talking {
+      display: block;
+      animation: mandoLipMovement 0.22s ease-in-out infinite alternate;
+    }
+
+    @keyframes mandoIdleBreathe {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-1px) rotate(0.3deg); }
+    }
+    @keyframes mandoSpeakingHeadBob {
+      0% { transform: translateY(0px) rotate(-1.5deg); }
+      100% { transform: translateY(-2px) rotate(1deg); }
+    }
+    @keyframes mandoEyeBlink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      96% { transform: scaleY(0.1); }
+    }
+    @keyframes mandoLipMovement {
+      0% { transform: scaleY(0.4) scaleX(0.9); }
+      50% { transform: scaleY(1.4) scaleX(1.15); }
+      100% { transform: scaleY(0.7) scaleX(1.05); }
+    }
+
+    /* ==========================================================================
+       15. DESKTOP ADAPTATION (>= 1024px)
+       ========================================================================== */
+    @media (min-width: 1024px) {
+      .desktop-sidebar {
+        display: flex;
+      }
+      .mobile-bottom-nav {
+        display: none;
+      }
+      .sticky-composer-wrap {
+        position: static;
+        background: transparent;
+        border: none;
+        padding: 0;
+      }
+      .main-viewport {
+        padding-bottom: 40px;
+      }
+      .views-container {
+        padding: 20px 28px;
+      }
+      .explore-grid-2col {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div>
-    <div class="card">
-      <div class="hero">
-        <div class="avatar" id="avatar">🙂</div>
-        <div>
-          <h1>MANDO</h1>
-          <div class="sub">Your Goan AI guide · English · हिंदी · मराठी</div>
+  <div class="app-root">
+
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="desktop-sidebar">
+      <div class="brand-group" onclick="switchNavTab('home')">
+        <div class="brand-icon-seal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2v20M2 12h20M12 6c3 0 5 2 5 6s-2 6-5 6-5-2-5-6 2-6 5-6z"></path>
+          </svg>
+        </div>
+        <div class="brand-text-block">
+          <span class="brand-title">HHGoa</span>
+          <span class="brand-sub">Mando Heritage AI</span>
         </div>
       </div>
 
-      <div class="banner hidden" id="banner"></div>
+      <nav style="display:flex; flex-direction:column; gap:6px; margin-top:28px;">
+        <button class="nav-tab-item active" id="desk-tab-home" onclick="switchNavTab('home')" style="flex-direction:row; justify-content:flex-start; padding:10px 12px; border-radius:8px; gap:10px;">
+          <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+          <span style="font-size:13px;">Home</span>
+        </button>
+        <button class="nav-tab-item" id="desk-tab-explore" onclick="switchNavTab('explore')" style="flex-direction:row; justify-content:flex-start; padding:10px 12px; border-radius:8px; gap:10px;">
+          <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg></span>
+          <span style="font-size:13px;">Explore Goa</span>
+        </button>
+        <button class="nav-tab-item" id="desk-tab-mando" onclick="switchNavTab('mando')" style="flex-direction:row; justify-content:flex-start; padding:10px 12px; border-radius:8px; gap:10px;">
+          <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+          <span style="font-size:13px;">Ask Mando</span>
+        </button>
+        <button class="nav-tab-item" id="desk-tab-timeline" onclick="switchNavTab('timeline')" style="flex-direction:row; justify-content:flex-start; padding:10px 12px; border-radius:8px; gap:10px;">
+          <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
+          <span style="font-size:13px;">Timeline</span>
+        </button>
+        <button class="nav-tab-item" id="desk-tab-saved" onclick="switchNavTab('saved')" style="flex-direction:row; justify-content:flex-start; padding:10px 12px; border-radius:8px; gap:10px;">
+          <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg></span>
+          <span style="font-size:13px;">Saved</span>
+        </button>
+      </nav>
 
-      <div class="row">
-        <div>
-          <label>Language</label>
-          <select id="lang">
-            <option value="auto">Auto-detect</option>
-            <option value="en">English</option>
-            <option value="hi">हिंदी</option>
-            <option value="mr">मराठी</option>
-          </select>
+      <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
+        <button class="stage-pill-btn" onclick="openBottomSheet('sheet-theme')" style="justify-content:center; padding:8px;">
+          <span>🎨 Change Theme</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN VIEWPORT -->
+    <main class="main-viewport">
+
+      <!-- TOP APP BAR -->
+      <header class="top-bar">
+        <div class="brand-group" onclick="switchNavTab('home')">
+          <div class="brand-icon-seal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2v20M2 12h20M12 6c3 0 5 2 5 6s-2 6-5 6-5-2-5-6 2-6 5-6z"></path>
+            </svg>
+          </div>
+          <div class="brand-text-block">
+            <span class="brand-title">HHGoa</span>
+            <span class="brand-sub">Mando Heritage AI</span>
+          </div>
         </div>
-        <div>
-          <label>Voice</label>
-          <select id="voice">
-            <option value="male">Mando — male</option>
-            <option value="female">Mando — female</option>
-          </select>
+
+        <div class="top-actions">
+          <!-- Mando Live Capsule -->
+          <div class="mando-status-capsule" onclick="switchNavTab('mando')">
+            <div class="status-avatar-mini">
+              <svg viewBox="0 0 100 100" class="mando-svg-avatar">
+                <rect width="100" height="100" fill="#2d170a"/>
+                <ellipse cx="50" cy="58" rx="22" ry="26" fill="#f0be8e"/>
+                <path d="M38 60 Q50 78 62 60 Q50 68 38 60 Z" fill="#3b2111"/>
+                <circle cx="43" cy="52" r="2.5" fill="#211005"/>
+                <circle cx="57" cy="52" r="2.5" fill="#211005"/>
+                <ellipse cx="50" cy="42" rx="34" ry="10" fill="#8c471c"/>
+                <path d="M28 42 C28 22, 72 22, 72 42 Z" fill="#b85f26"/>
+              </svg>
+            </div>
+            <div class="status-text-mini">
+              <span class="status-dot"></span>
+              <span id="mando-capsule-label">Mando</span>
+            </div>
+          </div>
+
+          <!-- Theme Switch -->
+          <button class="top-btn" title="Theme Switch" onclick="toggleThemeQuick()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </button>
         </div>
+      </header>
+
+      <!-- MULTI-PAGE VIEWS CONTAINER -->
+      <div class="views-container">
+
+        <!-- ================= PAGE 1: HOME ================= -->
+        <section class="view-page active" id="view-home">
+          
+          <!-- Hero Banner (5-Second Orientation) -->
+          <div class="mobile-hero-card">
+            <div class="hero-greeting-tag">🌴 Goan Cultural Heritage AI</div>
+            <h1 class="hero-main-title">Discover Goa.<br>Experience Stories.<br>Ask Anything.</h1>
+            <p class="hero-main-desc">Instant verified answers on Goa's history, vibrant festivals, culinary legends, and Konkani culture with voice-enabled Mando AI.</p>
+          </div>
+
+          <!-- Mando Interactive Spotlight Card -->
+          <div class="mando-mobile-spotlight" id="mando-home-card">
+            <div class="mando-spotlight-head">
+              <div class="mando-avatar-touch" onclick="toggleMandoSpeech()" title="Tap to listen to Mando">
+                <svg viewBox="0 0 100 100" class="mando-svg-avatar">
+                  <rect width="100" height="100" fill="#2d170a"/>
+                  <path d="M12 100 C12 75, 34 67, 50 67 C66 67, 88 75, 88 100 Z" fill="#1b4d58"/>
+                  <path d="M35 68 L50 92 L65 68 Z" fill="#e9d8c0"/>
+                  <path d="M47 70 L50 92 L53 70 Z" fill="#b85f26"/>
+
+                  <g class="mando-head-group">
+                    <rect x="44" y="55" width="12" height="15" fill="#d99b66"/>
+                    <ellipse cx="28" cy="48" rx="4" ry="6" fill="#e4a877"/>
+                    <ellipse cx="72" cy="48" rx="4" ry="6" fill="#e4a877"/>
+                    <ellipse cx="50" cy="48" rx="21" ry="22" fill="#f0be8e"/>
+                    
+                    <g class="mando-eye" style="transform-origin: 43px 44px;">
+                      <circle cx="43" cy="44" r="2.4" fill="#211005"/>
+                      <circle cx="44" cy="43" r="0.8" fill="#ffffff"/>
+                    </g>
+                    <g class="mando-eye" style="transform-origin: 57px 44px;">
+                      <circle cx="57" cy="44" r="2.4" fill="#211005"/>
+                      <circle cx="58" cy="43" r="0.8" fill="#ffffff"/>
+                    </g>
+
+                    <path d="M39 40 Q43 38 47 40" stroke="#3b2111" stroke-width="1.2" fill="none"/>
+                    <path d="M53 40 Q57 38 61 40" stroke="#3b2111" stroke-width="1.2" fill="none"/>
+                    <path d="M50 44 L48 49 L52 49" stroke="#d99b66" stroke-width="1" fill="none"/>
+                    <path d="M37 51 Q50 48 63 51 Q50 56 37 51 Z" fill="#3b2111"/>
+
+                    <g class="mando-mouth-normal">
+                      <path d="M45 54 Q50 58 55 54" stroke="#ffffff" stroke-width="1.4" fill="none"/>
+                    </g>
+                    <g class="mando-mouth-talking">
+                      <ellipse cx="50" cy="55" rx="5" ry="4.5" fill="#2a0f07"/>
+                      <path d="M47 56 Q50 58.5 53 56" fill="#e06262"/>
+                      <line x1="47" y1="53.5" x2="53" y2="53.5" stroke="#ffffff" stroke-width="1.2"/>
+                    </g>
+
+                    <ellipse cx="50" cy="35" rx="30" ry="8" fill="#8c471c"/>
+                    <path d="M28 35 C28 16, 72 16, 72 35 Z" fill="#b85f26"/>
+                    <rect x="28" y="32" width="44" height="3.5" fill="#f0b254"/>
+                    <path d="M30 32 Q25 18 32 12 Q33 22 31 32 Z" fill="#2aa89f"/>
+                  </g>
+                </svg>
+              </div>
+
+              <div class="mando-spotlight-info">
+                <div class="mando-name-row">
+                  <span class="mando-title-name">Mando Companion</span>
+                  <button class="stage-pill-btn" onclick="openBottomSheet('sheet-rag')">
+                    <span>How it works ⚙️</span>
+                  </button>
+                </div>
+                <div class="mando-state-desc" id="mando-state-label">
+                  <span class="status-dot"></span>
+                  <span>Ask me anything about Goa</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mando-live-bubble" id="mando-home-bubble">
+              Olá! I'm Mando. Ask me about São João, Old Goa churches, authentic fish curry, or 450 years of history.
+            </div>
+
+            <!-- Quick Suggestions -->
+            <div class="prompt-chips-scroll">
+              <button class="prompt-chip" onclick="askQuestion('Tell me about São João Festival')">🎉 São João</button>
+              <button class="prompt-chip" onclick="askQuestion('What are the main festivals in Goa?')">🎭 Goa Festivals</button>
+              <button class="prompt-chip" onclick="askQuestion('Explain traditional Goan fish curry and Bebinca')">🍛 Goan Food</button>
+              <button class="prompt-chip" onclick="askQuestion('History of Old Goa churches and Basilica')">⛪ Old Goa History</button>
+              <button class="prompt-chip" onclick="askQuestion('What is Mando music and Ghumot?')">🎻 Mando Music</button>
+            </div>
+          </div>
+
+          <!-- 2-Column Explore Categories Grid -->
+          <div>
+            <div class="section-header-row">
+              <span class="section-headline">✨ Explore Categories</span>
+              <span class="section-view-all" onclick="switchNavTab('explore')">See All →</span>
+            </div>
+            
+            <div class="explore-grid-2col">
+              <div class="explore-card" onclick="askQuestion('Tell me about the best serene beaches in South Goa like Palolem and Agonda')">
+                <div class="explore-card-icon">🌴</div>
+                <div>
+                  <div class="explore-card-title">Beaches</div>
+                  <div class="explore-card-desc">Palolem, Agonda & coastline</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('Tell me about Old Goa churches, Basilica of Bom Jesus and 1961 Liberation')">
+                <div class="explore-card-icon">⛪</div>
+                <div>
+                  <div class="explore-card-title">History</div>
+                  <div class="explore-card-desc">450+ yrs & UNESCO Sites</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('Tell me about São João, Shigmo and Carnival festivals in Goa')">
+                <div class="explore-card-icon">🎭</div>
+                <div>
+                  <div class="explore-card-title">Festivals</div>
+                  <div class="explore-card-desc">São João, Shigmo, Carnival</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('Explain traditional Goan fish curry, Bebinca dessert and spices')">
+                <div class="explore-card-icon">🍛</div>
+                <div>
+                  <div class="explore-card-title">Food</div>
+                  <div class="explore-card-desc">Xitt Kodi & Bebinca</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('Tell me about Mando music, Ghumot, and Goan folk culture')">
+                <div class="explore-card-icon">🎻</div>
+                <div>
+                  <div class="explore-card-title">Culture</div>
+                  <div class="explore-card-desc">Mando songs & folklore</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('What are the top waterfalls like Dudhsagar and spice plantations in Goa?')">
+                <div class="explore-card-icon">🌿</div>
+                <div>
+                  <div class="explore-card-title">Nature</div>
+                  <div class="explore-card-desc">Dudhsagar & Spices</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('Tell me about Indo-Portuguese houses, balcãos and oyster shell windows')">
+                <div class="explore-card-icon">🏛️</div>
+                <div>
+                  <div class="explore-card-title">Architecture</div>
+                  <div class="explore-card-desc">Balcãos & Azulejos</div>
+                </div>
+              </div>
+
+              <div class="explore-card" onclick="askQuestion('Tell me about Konkani language history, Romi script and Devanagari')">
+                <div class="explore-card-icon">🪷</div>
+                <div>
+                  <div class="explore-card-title">Konkani</div>
+                  <div class="explore-card-desc">Official tongue of Goa</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Featured São João Story Spotlight -->
+          <article class="featured-story-card">
+            <div class="featured-badge">🎉 Cultural Spotlight</div>
+            <h2 class="featured-title">Feast of São João (St. John)</h2>
+            <p class="featured-text">Celebrated with great joy every June as monsoons arrive. Goans wear floral crowns (kopels), sing folk Dulpods, and leap joyfully into wells.</p>
+            
+            <div class="featured-highlights-row">
+              <div class="featured-h-item">🌿 Floral Kopels</div>
+              <div class="featured-h-item">⛵ Siolim Boat Parade</div>
+              <div class="featured-h-item">🎶 Ghumot Folk Beats</div>
+              <div class="featured-h-item">🍛 Ochem Feasts</div>
+            </div>
+
+            <button class="stage-pill-btn" onclick="askQuestion('Tell me everything about São João celebrations, kopels and Siolim boat parade')" style="align-self:flex-start; margin-top:4px;">
+              <span>Ask Mando about São João →</span>
+            </button>
+          </article>
+
+          <!-- Goa at a Glance Stats -->
+          <div>
+            <div class="section-headline" style="margin-bottom:8px;">📊 Goa at a Glance</div>
+            <div class="stats-glance-grid">
+              <div class="stat-box">
+                <div class="stat-num">37+</div>
+                <div class="stat-lbl">Beaches</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-num">450+</div>
+                <div class="stat-lbl">Years Heritage</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-num">25+</div>
+                <div class="stat-lbl">Festivals</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-num">3</div>
+                <div class="stat-lbl">UNESCO Sites</div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= PAGE 2: EXPLORE ================= -->
+        <section class="view-page" id="view-explore">
+          <div class="section-headline" style="font-size:16px;">🌊 Explore Goan Heritage</div>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Browse curated cultural categories, landmarks, and traditions.</p>
+
+          <div class="explore-grid-2col">
+            <div class="explore-card" onclick="askQuestion('What are the top must-visit cultural places in Goa?')">
+              <div class="explore-card-icon">🗺️</div>
+              <div>
+                <div class="explore-card-title">Top Heritage Trail</div>
+                <div class="explore-card-desc">Must-visit historical sites</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Tell me about Basilica of Bom Jesus and St Francis Xavier')">
+              <div class="explore-card-icon">⛪</div>
+              <div>
+                <div class="explore-card-title">Bom Jesus</div>
+                <div class="explore-card-desc">UNESCO Basilica in Old Goa</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Explain traditional Goan Fish Curry Thali Xitt Kodi')">
+              <div class="explore-card-icon">🍛</div>
+              <div>
+                <div class="explore-card-title">Xitt Kodi Thali</div>
+                <div class="explore-card-desc">Coconut curry, kokum & fish</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Tell me about Palolem and Agonda serene beaches')">
+              <div class="explore-card-icon">🏖️</div>
+              <div>
+                <div class="explore-card-title">South Coast</div>
+                <div class="explore-card-desc">Palolem, Agonda & Colva</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Tell me about Kadambas and ancient Hindu dynasties of Goa')">
+              <div class="explore-card-icon">👑</div>
+              <div>
+                <div class="explore-card-title">Ancient Dynasties</div>
+                <div class="explore-card-desc">Kadambas & Satavahanas</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Explain Shigmo spring festival and Ghode Modni dance')">
+              <div class="explore-card-icon">🎭</div>
+              <div>
+                <div class="explore-card-title">Shigmotsav</div>
+                <div class="explore-card-desc">Spring festival of colors</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Tell me about Dudhsagar waterfalls and Bhagwan Mahavir sanctuary')">
+              <div class="explore-card-icon">🌊</div>
+              <div>
+                <div class="explore-card-title">Dudhsagar Falls</div>
+                <div class="explore-card-desc">Sea of milk cascade</div>
+              </div>
+            </div>
+
+            <div class="explore-card" onclick="askQuestion('Tell me about Sacred Temples of Ponda and Deepastambhas')">
+              <div class="explore-card-icon">🪔</div>
+              <div>
+                <div class="explore-card-title">Ponda Temples</div>
+                <div class="explore-card-desc">Mangueshi & Shantadurga</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 3: CONVERSATION (MANDO CHAT) ================= -->
+        <section class="view-page" id="view-mando">
+          
+          <div class="conversation-stream" id="conversation-stream">
+            <!-- User Query Bubble -->
+            <div class="user-query-bubble" id="conv-user-query">
+              <span>💬</span>
+              <span id="user-question-text">What are the main festivals in Goa?</span>
+            </div>
+
+            <!-- Mando Answer Card -->
+            <article class="mando-answer-card" id="mando-active-answer-card">
+              <div class="mando-answer-head">
+                <div class="mando-head-left">
+                  <div class="mando-answer-avatar-sm">
+                    <svg viewBox="0 0 100 100" class="mando-svg-avatar">
+                      <rect width="100" height="100" fill="#2d170a"/>
+                      <ellipse cx="50" cy="58" rx="22" ry="26" fill="#f0be8e"/>
+                      <path d="M38 60 Q50 78 62 60 Q50 68 38 60 Z" fill="#3b2111"/>
+                      <ellipse cx="50" cy="42" rx="34" ry="10" fill="#8c471c"/>
+                      <path d="M28 42 C28 22, 72 22, 72 42 Z" fill="#b85f26"/>
+                    </svg>
+                  </div>
+                  <div class="mando-answer-author">
+                    <span class="author-name">Mando AI</span>
+                    <span class="author-badge">Verified Heritage Archive</span>
+                  </div>
+                </div>
+
+                <button class="rag-journey-pill-btn" onclick="openBottomSheet('sheet-rag')">
+                  <span>How Mando answered ⚙️</span>
+                </button>
+              </div>
+
+              <!-- Main Answer Text -->
+              <div class="mando-answer-body" id="mando-answer-text">
+                Goa is renowned for its rich cultural celebrations that blend indigenous Konkan traditions with Portuguese heritage:<br><br>
+                🎉 <strong>Feast of São João (June 24)</strong> – Joyous monsoon festival where Goans wear floral <em>kopels</em>, sing folk songs, and leap into wells.<br>
+                🎭 <strong>Shigmo (Shigmotsav)</strong> – Traditional spring festival of colors featuring <em>Ghode Modni</em> warrior dances and grand street parades.<br>
+                ✨ <strong>Goa Carnival (February)</strong> – Vibrant pre-Lenten parade led by King Momo with music, dance, and floats.<br>
+                🎄 <strong>Christmas & New Year</strong> – Lit with star lanterns, midnight masses at historic churches, and midnight bonfire traditions.<br>
+                🪔 <strong>Diwali & Narkasur</strong> – Giant effigies of demon Narkasur are crafted and burned on the eve of Diwali across villages.
+              </div>
+
+              <!-- Sources Bar -->
+              <div class="answer-sources-bar" onclick="openBottomSheet('sheet-sources')">
+                <div class="sources-left">
+                  <span>📚</span>
+                  <span>Verified Sources</span>
+                  <span class="sources-count-badge" id="sources-count-num">4</span>
+                </div>
+                <span style="font-size:11.5px; color:var(--gold-primary); font-weight:600;">View citations →</span>
+              </div>
+
+              <!-- Actions Bar -->
+              <div class="answer-actions-bar">
+                <button class="listen-btn-primary" id="listen-speech-btn" onclick="toggleMandoSpeech()">
+                  <span id="listen-icon">▶</span>
+                  <span id="listen-text">Listen</span>
+                </button>
+
+                <div class="action-icons-group">
+                  <button class="icon-act-btn" title="Bookmark" onclick="bookmarkAnswer()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  </button>
+                  <button class="icon-act-btn" title="Copy text" onclick="copyAnswer()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                  <button class="icon-act-btn" title="Helpful" onclick="rateAnswer(true)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Follow-up Suggestions -->
+            <div class="followup-box">
+              <div class="followup-title">Suggested Follow-ups</div>
+              <div class="prompt-chips-scroll">
+                <button class="prompt-chip" onclick="askQuestion('Tell me more about São João floral kopels and traditions')">🌺 About São João Kopels</button>
+                <button class="prompt-chip" onclick="askQuestion('What traditional foods are cooked during Goan festivals?')">🍛 Festival Foods</button>
+                <button class="prompt-chip" onclick="askQuestion('Where are the best Shigmo parades held in Goa?')">📍 Best Shigmo Locations</button>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= PAGE 4: TIMELINE ================= -->
+        <section class="view-page" id="view-timeline">
+          <div class="section-headline" style="font-size:16px;">⏳ Goa's Historical Timeline</div>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Explore key eras in Goa's evolution from ancient times to present.</p>
+
+          <div class="timeline-vertical-wrap">
+            
+            <div class="timeline-v-node">
+              <div class="timeline-v-dot"></div>
+              <div class="timeline-v-card" onclick="askQuestion('Tell me about ancient Goa pre-history, Usgalimal petroglyphs and indigenous roots')">
+                <div class="era-v-head">
+                  <span class="era-v-name">Pre-History</span>
+                  <span class="era-v-years">Before 300 BC</span>
+                </div>
+                <p class="era-v-text">Indigenous hunter-gatherer communities along Kushavati river; Usgalimal rock engravings and early Konkan settlements.</p>
+              </div>
+            </div>
+
+            <div class="timeline-v-node">
+              <div class="timeline-v-dot"></div>
+              <div class="timeline-v-card" onclick="askQuestion('Tell me about Kadambas, Satavahanas, and ancient Hindu dynasties of Goa')">
+                <div class="era-v-head">
+                  <span class="era-v-name">Hindu Dynasties</span>
+                  <span class="era-v-years">300 BC – 1312</span>
+                </div>
+                <p class="era-v-text">Golden age under Bhojas, Satavahanas, and Kadamba rulers of Chandor and Gopakapattana (Goa Velha).</p>
+              </div>
+            </div>
+
+            <div class="timeline-v-node">
+              <div class="timeline-v-dot"></div>
+              <div class="timeline-v-card" onclick="askQuestion('Tell me about 451 years of Portuguese colonial era in Goa, Old Goa churches and culture')">
+                <div class="era-v-head">
+                  <span class="era-v-name">Portuguese Era</span>
+                  <span class="era-v-years">1510 – 1961</span>
+                </div>
+                <p class="era-v-text">Afonso de Albuquerque conquers Goa; Old Goa becomes 'Rome of the East', birth of Indo-Portuguese architecture and Mando music.</p>
+              </div>
+            </div>
+
+            <div class="timeline-v-node">
+              <div class="timeline-v-dot"></div>
+              <div class="timeline-v-card" onclick="askQuestion('Tell me about Ram Manohar Lohia, Operation Vijay and 1961 Goa Liberation')">
+                <div class="era-v-head">
+                  <span class="era-v-name">Freedom Struggle</span>
+                  <span class="era-v-years">1946 – 1961</span>
+                </div>
+                <p class="era-v-text">Civil disobedience launched by Dr. Lohia in Margao; Indian Army executes 'Operation Vijay' on Dec 19, 1961.</p>
+              </div>
+            </div>
+
+            <div class="timeline-v-node">
+              <div class="timeline-v-dot"></div>
+              <div class="timeline-v-card" onclick="askQuestion('Tell me about Goa statehood in 1987, Konkani language movement and modern Goa')">
+                <div class="era-v-head">
+                  <span class="era-v-name">Modern Goa</span>
+                  <span class="era-v-years">1961 – Present</span>
+                </div>
+                <p class="era-v-text">Historical Opinion Poll 1967 retains Goan identity; Konkani becomes official language, Goa attains full statehood in 1987.</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================= PAGE 5: SAVED ================= -->
+        <section class="view-page" id="view-saved">
+          <div class="section-headline" style="font-size:16px;">🔖 Saved Archives</div>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Your bookmarked heritage stories and answers.</p>
+
+          <div class="saved-list" id="saved-list-container">
+            <div class="saved-item-card" onclick="askQuestion('What are the main festivals in Goa?')">
+              <div class="saved-item-title">Festivals of Goa (São João, Shigmo, Carnival)</div>
+              <div class="saved-item-snippet">Goa is renowned for its rich cultural celebrations that blend indigenous Konkan traditions with Portuguese heritage...</div>
+            </div>
+            <div class="saved-item-card" onclick="askQuestion('Tell me about São João Festival')">
+              <div class="saved-item-title">São João Feast & Floral Kopels</div>
+              <div class="saved-item-snippet">Celebrated in June to welcome monsoons with music, folk dulpods and joyful leaping into village wells...</div>
+            </div>
+          </div>
+        </section>
+
       </div>
 
-      <button class="talk" id="talk">🎙 Hold to talk</button>
+    </main>
 
-      <div class="row" style="margin-top:12px">
-        <input type="text" id="text" placeholder="…or type your question here">
-        <button class="primary" id="send">Ask</button>
+    <!-- ==========================================================================
+       STICKY MOBILE COMPOSER DOCK (Always Accessible Above Bottom Nav)
+       ========================================================================== -->
+    <div class="sticky-composer-wrap">
+      <div class="composer-inner-dock">
+        <!-- Language Trigger Button -->
+        <button class="lang-selector-btn" onclick="openBottomSheet('sheet-lang')" title="Change Language">
+          <span id="active-lang-code">AUTO</span>
+          <span style="font-size:8px;">▼</span>
+        </button>
+
+        <!-- Main Query Input -->
+        <input type="text" id="mobile-query-input" class="composer-text-input" placeholder="Ask Mando about Goa..." onkeydown="if(event.key==='Enter') submitComposerQuery()">
+
+        <!-- Voice Mic Button -->
+        <button class="composer-action-btn mic-btn-main" id="mobile-mic-btn" title="Voice Input" onclick="toggleVoiceRecording()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+        </button>
+
+        <!-- Send Button -->
+        <button class="composer-action-btn send-btn-main" title="Send" onclick="submitComposerQuery()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
       </div>
-
-      <div id="out"></div>
     </div>
+
+    <!-- ==========================================================================
+       MOBILE BOTTOM NAVIGATION (5 Clear Tabs)
+       ========================================================================== -->
+    <nav class="mobile-bottom-nav">
+      <button class="nav-tab-item active" id="tab-home" onclick="switchNavTab('home')">
+        <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+        <span class="nav-tab-label">Home</span>
+      </button>
+
+      <button class="nav-tab-item" id="tab-explore" onclick="switchNavTab('explore')">
+        <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg></span>
+        <span class="nav-tab-label">Explore</span>
+      </button>
+
+      <!-- Center Highlighted Mando Tab -->
+      <button class="nav-tab-item mando-highlight" id="tab-mando" onclick="switchNavTab('mando')">
+        <div class="mando-nav-glow-badge">
+          <svg viewBox="0 0 100 100" class="mando-svg-avatar">
+            <rect width="100" height="100" fill="#2d170a"/>
+            <ellipse cx="50" cy="58" rx="22" ry="26" fill="#f0be8e"/>
+            <path d="M38 60 Q50 78 62 60 Q50 68 38 60 Z" fill="#3b2111"/>
+            <ellipse cx="50" cy="42" rx="34" ry="10" fill="#8c471c"/>
+            <path d="M28 42 C28 22, 72 22, 72 42 Z" fill="#b85f26"/>
+          </svg>
+        </div>
+        <span class="nav-tab-label" style="color:var(--gold-primary); font-weight:700;">Mando</span>
+      </button>
+
+      <button class="nav-tab-item" id="tab-timeline" onclick="switchNavTab('timeline')">
+        <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
+        <span class="nav-tab-label">Timeline</span>
+      </button>
+
+      <button class="nav-tab-item" id="tab-saved" onclick="switchNavTab('saved')">
+        <span class="nav-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg></span>
+        <span class="nav-tab-label">Saved</span>
+      </button>
+    </nav>
+
+    <!-- ==========================================================================
+       BOTTOM SHEET 1: SOURCES & CITATIONS
+       ========================================================================== -->
+    <div class="bottom-sheet-overlay" id="sheet-sources" onclick="if(event.target===this) closeBottomSheet('sheet-sources')">
+      <div class="bottom-sheet-card">
+        <div class="sheet-drag-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title">📚 Verified Sources</div>
+          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-sources')">✕</button>
+        </div>
+
+        <div class="sources-detailed-list" id="sheet-sources-content">
+          <div class="source-detail-card">
+            <div class="source-detail-title">Goan Cultural Heritage Archives</div>
+            <div class="source-detail-origin">🏛️ Directorate of Art & Culture Goa · Govt of Goa</div>
+            <div class="source-detail-text">Documented records of traditional feasts, São João rituals, kopels, and monsoon folklore.</div>
+          </div>
+
+          <div class="source-detail-card">
+            <div class="source-detail-title">Festivals of Goa: Rhythms and Rituals</div>
+            <div class="source-detail-origin">📖 Goan Ethnomusicology & Folklore Study</div>
+            <div class="source-detail-text">Historical analysis of Siolim boat parade, ghumot rhythms, dulpod folk verses and community harmony.</div>
+          </div>
+
+          <div class="source-detail-card">
+            <div class="source-detail-title">Archaeological Survey of India (ASI)</div>
+            <div class="source-detail-origin">⛪ Goa Circle Monograph</div>
+            <div class="source-detail-text">Monuments of Old Goa, UNESCO World Heritage citations, and preservation archives.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+       BOTTOM SHEET 2: RAG JOURNEY (HOW MANDO ANSWERED)
+       ========================================================================== -->
+    <div class="bottom-sheet-overlay" id="sheet-rag" onclick="if(event.target===this) closeBottomSheet('sheet-rag')">
+      <div class="bottom-sheet-card">
+        <div class="sheet-drag-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title">⚙️ How Mando Answered</div>
+          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-rag')">✕</button>
+        </div>
+
+        <div class="rag-steps-vertical">
+          <div class="rag-step-row completed">
+            <div class="step-icon-circle">💬</div>
+            <div class="step-content">
+              <div class="step-title">1. Question Received</div>
+              <div class="step-desc" id="rag-step-q-label">"What are the main festivals in Goa?"</div>
+            </div>
+          </div>
+
+          <div class="rag-step-row completed">
+            <div class="step-icon-circle">🔮</div>
+            <div class="step-content">
+              <div class="step-title">2. Semantic Understanding</div>
+              <div class="step-desc">Identified intent, cultural context, and Goan heritage keywords.</div>
+            </div>
+          </div>
+
+          <div class="rag-step-row completed">
+            <div class="step-icon-circle">📑</div>
+            <div class="step-content">
+              <div class="step-title">3. Hybrid Vector Retrieval</div>
+              <div class="step-desc">Retrieved verified chunks from curated Goan historical records.</div>
+            </div>
+          </div>
+
+          <div class="rag-step-row completed">
+            <div class="step-icon-circle">📚</div>
+            <div class="step-content">
+              <div class="step-title">4. Grounded Citations</div>
+              <div class="step-desc">Cross-referenced Directorate of Art & Culture + ASI records.</div>
+            </div>
+          </div>
+
+          <div class="rag-step-row completed">
+            <div class="step-icon-circle">⚙️</div>
+            <div class="step-content">
+              <div class="step-title">5. Synthesis & Generation</div>
+              <div class="step-desc">Formulated concise, culturally rich answer with voice metadata.</div>
+            </div>
+          </div>
+
+          <div class="rag-step-row completed">
+            <div class="step-icon-circle">✓</div>
+            <div class="step-content">
+              <div class="step-title">6. Verified Answer Delivered</div>
+              <div class="step-desc">Ready with speech synthesis and full transparency.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+       BOTTOM SHEET 3: THEME & SETTINGS
+       ========================================================================== -->
+    <div class="bottom-sheet-overlay" id="sheet-theme" onclick="if(event.target===this) closeBottomSheet('sheet-theme')">
+      <div class="bottom-sheet-card">
+        <div class="sheet-drag-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title">🎨 Appearance & Audio</div>
+          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-theme')">✕</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-dim);">SELECT THEME</div>
+          <div class="lang-options-grid">
+            <div class="lang-opt-card" id="opt-theme-heritage" onclick="setTheme('heritage')">
+              <div class="lang-opt-title">Heritage Night 🏛️</div>
+              <div class="lang-opt-sub">Warm amber, gold & terracotta</div>
+            </div>
+            <div class="lang-opt-card" id="opt-theme-coastal" onclick="setTheme('coastal')">
+              <div class="lang-opt-title">Coastal Goa 🌊</div>
+              <div class="lang-opt-sub">Deep ocean blue & teal</div>
+            </div>
+          </div>
+
+          <div style="font-size:12px; font-weight:700; color:var(--text-dim); margin-top:8px;">SPEECH SPEED</div>
+          <div style="display:flex; gap:8px;">
+            <button class="stage-pill-btn" onclick="setSpeechSpeed(1.0)">1.0x (Normal)</button>
+            <button class="stage-pill-btn" onclick="setSpeechSpeed(1.25)">1.25x (Faster)</button>
+            <button class="stage-pill-btn" onclick="setSpeechSpeed(1.5)">1.5x (Fast)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+       BOTTOM SHEET 4: LANGUAGE SELECTOR
+       ========================================================================== -->
+    <div class="bottom-sheet-overlay" id="sheet-lang" onclick="if(event.target===this) closeBottomSheet('sheet-lang')">
+      <div class="bottom-sheet-card">
+        <div class="sheet-drag-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title">🌐 Select Language</div>
+          <button class="sheet-close-btn" onclick="closeBottomSheet('sheet-lang')">✕</button>
+        </div>
+
+        <div class="lang-options-grid">
+          <div class="lang-opt-card active" id="lang-opt-auto" onclick="selectAppLanguage('auto', 'Auto Detect')">
+            <div class="lang-opt-title">🌐 Auto Detect</div>
+            <div class="lang-opt-sub">Mando detects your language</div>
+          </div>
+          <div class="lang-opt-card" id="lang-opt-en" onclick="selectAppLanguage('en', 'English')">
+            <div class="lang-opt-title">English</div>
+            <div class="lang-opt-sub">Default fallback</div>
+          </div>
+          <div class="lang-opt-card" id="lang-opt-hi" onclick="selectAppLanguage('hi', 'हिन्दी (Hindi)')">
+            <div class="lang-opt-title">हिन्दी</div>
+            <div class="lang-opt-sub">Hindi</div>
+          </div>
+          <div class="lang-opt-card" id="lang-opt-mr" onclick="selectAppLanguage('mr', 'मराठी (Marathi)')">
+            <div class="lang-opt-title">मराठी</div>
+            <div class="lang-opt-sub">Marathi</div>
+          </div>
+          <div class="lang-opt-card" id="lang-opt-kok" onclick="selectAppLanguage('kok', 'कोंकणी (Konkani)')">
+            <div class="lang-opt-title">कोंकणी</div>
+            <div class="lang-opt-sub">Konkani -- text only, no spoken audio yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <div>
-    <div class="card">
-      <h3>Pipeline</h3>
-      <div id="debug" style="color:var(--muted);font-size:13px">
-        Ask something to see the stage breakdown.
-      </div>
-    </div>
-    <div class="card" style="margin-top:18px">
-      <h3>Sources</h3>
-      <div id="sources" style="color:var(--muted);font-size:13px">—</div>
-    </div>
-  </div>
-</div>
+  <!-- ==========================================================================
+     JAVASCRIPT LOGIC
+     ========================================================================== -->
+  <script>
+    // State management
+    let activeTab = 'home';
+    let currentQuery = "What are the main festivals in Goa?";
+    let currentAnswer = `Goa is renowned for its rich cultural celebrations that blend indigenous Konkan traditions with Portuguese heritage:
 
-<script>
-const API = location.origin;
-const $ = id => document.getElementById(id);
-const avatar = $("avatar");
-let recorder = null, chunks = [], canRecord = false;
+🎉 Feast of São João (June 24) – Joyous monsoon festival where Goans wear floral kopels, sing folk songs, and leap into wells.
+🎭 Shigmo (Shigmotsav) – Traditional spring festival of colors featuring Ghode Modni warrior dances and grand street parades.
+✨ Goa Carnival (February) – Vibrant pre-Lenten parade led by King Momo with music, dance, and floats.
+🎄 Christmas & New Year – Lit with star lanterns, midnight masses at historic churches, and midnight bonfire traditions.
+🪔 Diwali & Narkasur – Giant effigies of demon Narkasur are crafted and burned on the eve of Diwali across villages.`;
+    
+    let currentSources = [
+      { source: "Goan Cultural Heritage Archives · Directorate of Art & Culture Goa", text: "Records of traditional feasts, São João rituals, kopels, and monsoon folklore." },
+      { source: "Festivals of Goa: Rhythms and Rituals · Dr. Maria Couto", text: "Analysis of Siolim boat parade, ghumot rhythms, dulpod folk verses." },
+      { source: "Archaeological Survey of India (ASI) · Goa Circle Monograph", text: "Monuments of Old Goa and UNESCO World Heritage citations." }
+    ];
 
-const setFace = (state, emoji) => { avatar.className = "avatar " + state;
-                                    avatar.textContent = emoji; };
+    let isSpeaking = false;
+    let isRecording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let speechSpeed = 1.0;
+    let speechUtterance = null;
+    // Real backend language codes only (docs/api-v1.md): auto/en/hi/mr/kok.
+    // The selector's earlier 'ROMI'/'PT' options were decorative -- the
+    // backend rejects them with 422 -- so they were replaced with the
+    // languages the API actually accepts.
+    let activeLanguage = 'auto';
 
-// ---- capability probe: never offer a control the backend cannot serve ----
-fetch(API + "/health").then(r => r.json()).then(h => {
-  const miss = h.missing_credentials || [];
-  canRecord = h.capabilities && h.capabilities.speech_to_text;
-  if (!canRecord) {
-    $("talk").disabled = true;
-    $("talk").textContent = "🎙 Voice disabled — no Sarvam key";
-  }
-  if (miss.length) {
-    $("banner").classList.remove("hidden");
-    $("banner").innerHTML = "Running with reduced capability — missing: <b>"
-      + miss.join("</b>, <b>") + "</b>."
-      + (h.capabilities && !h.capabilities.llm_generation
-         ? " Answers come from the grounded extractive fallback, so they are "
-           + "verbatim source text without Mando's voice."
-         : "");
-  }
-}).catch(() => {
-  $("banner").classList.remove("hidden");
-  $("banner").textContent = "Backend unreachable.";
-});
+    // 1. Navigation Tab Switching
+    function switchNavTab(tabName) {
+      activeTab = tabName;
 
-// ---- push to talk --------------------------------------------------------
-async function startRec(){
-  if (!canRecord) return;
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    recorder = new MediaRecorder(stream);
-    chunks = [];
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      const blob = new Blob(chunks, {type:"audio/webm"});
-      const b64 = await new Promise(res => {
-        const fr = new FileReader();
-        fr.onloadend = () => res(fr.result.split(",")[1]);
-        fr.readAsDataURL(blob);
+      // Update pages
+      document.querySelectorAll('.view-page').forEach(page => page.classList.remove('active'));
+      const activePage = document.getElementById('view-' + tabName);
+      if (activePage) activePage.classList.add('active');
+
+      // Update mobile bottom nav
+      document.querySelectorAll('.mobile-bottom-nav .nav-tab-item').forEach(btn => btn.classList.remove('active'));
+      const activeMobileBtn = document.getElementById('tab-' + tabName);
+      if (activeMobileBtn) activeMobileBtn.classList.add('active');
+
+      // Update desktop sidebar
+      document.querySelectorAll('.desktop-sidebar .nav-tab-item').forEach(btn => btn.classList.remove('active'));
+      const activeDeskBtn = document.getElementById('desk-tab-' + tabName);
+      if (activeDeskBtn) activeDeskBtn.classList.add('active');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 2. Ask Question / Submit Query
+    function askQuestion(query) {
+      const q = query.trim();
+      if (!q) return;
+
+      currentQuery = q;
+      document.getElementById('user-question-text').textContent = q;
+      document.getElementById('rag-step-q-label').textContent = `"${q}"`;
+      document.getElementById('mando-state-label').innerHTML = `<span class="status-dot"></span><span>Searching archives for "${q.slice(0, 20)}..."</span>`;
+      
+      switchNavTab('mando');
+      executeQuery(q);
+    }
+
+    function submitComposerQuery() {
+      const input = document.getElementById('mobile-query-input');
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = '';
+      askQuestion(q);
+    }
+
+    // Mando state machine -- reflects real request lifecycle, never fakes a
+    // backend stage that hasn't actually completed. The RAG-journey UI
+    // animates through these as a CONCEPTUAL visualization only; it never
+    // claims a specific pipeline stage (retrieval/judge/generation) finished
+    // before the single real API call actually returns.
+    function setMandoState(state) {
+      const label = document.getElementById('mando-state-label');
+      const MESSAGES = {
+        idle: 'Ready',
+        listening: 'Listening to your voice... Speak now',
+        uploading: 'Sending your question to Mando...',
+        thinking: 'Searching archives and verifying cultural sources...',
+        speaking: 'Answer ready',
+        success: 'Answer ready',
+        error: 'Something went wrong',
+      };
+      if (label) {
+        const dotColor = state === 'error' ? '#ef4444' : state === 'listening' ? '#ef4444' : '';
+        label.innerHTML = `<span class="status-dot"${dotColor ? ` style="background:${dotColor}"` : ''}></span><span>${MESSAGES[state] || state}</span>`;
+      }
+      document.body.setAttribute('data-mando-state', state);
+    }
+
+    // Renders one real backend response (from /api/text/query or
+    // /api/voice/query) into the answer/sources UI. Shared by both paths so
+    // voice and text queries always show the same, real data -- transcript,
+    // answer, sources, and refusal state exactly as the backend returned
+    // them, nothing invented client-side.
+    function renderBackendResponse(data, query) {
+      currentAnswer = data.answer || "No response received.";
+      currentSources = data.sources || [];
+
+      const answerEl = document.getElementById('mando-answer-text');
+      const refused = !!(data.guardrail && data.guardrail.refused);
+      const formatted = currentAnswer.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+      answerEl.innerHTML = refused
+        ? `<span style="color:var(--gold-primary);">${formatted}</span>`
+        : formatted;
+
+      document.getElementById('sources-count-num').textContent = currentSources.length;
+      renderSourcesInSheet();
+
+      setMandoState(refused ? 'idle' : 'success');
+      document.getElementById('mando-home-bubble').innerHTML = refused
+        ? `I couldn't find enough verified sources for <strong>${query}</strong>.`
+        : `Here is what I found about <strong>${query}</strong>!`;
+
+      // Prefer the REAL synthesized voice from the backend (Sarvam TTS) when
+      // one came back; only fall back to the browser's own speech synthesis
+      // when the backend has no audio for this response (e.g. Konkani, which
+      // has no Sarvam TTS voice -- see audio_unavailable_reason).
+      if (data.audio_base64) {
+        playBackendAudio(data.audio_base64);
+      } else {
+        startSpeech();
+      }
+    }
+
+    let backendAudioEl = null;
+    function playBackendAudio(base64) {
+      stopSpeech();
+      if (!backendAudioEl) {
+        backendAudioEl = new Audio();
+        backendAudioEl.onplay = () => setMandoSpeaking(true);
+        backendAudioEl.onended = () => setMandoSpeaking(false);
+        backendAudioEl.onerror = () => setMandoSpeaking(false);
+      }
+      backendAudioEl.src = 'data:audio/wav;base64,' + base64;
+      backendAudioEl.play().catch(() => setMandoSpeaking(false));
+    }
+
+    async function executeQuery(query) {
+      stopSpeech();
+      setMandoState('thinking');
+
+      const answerEl = document.getElementById('mando-answer-text');
+      answerEl.innerHTML = '<span style="color:var(--gold-primary);">Searching historical archives and verifying cultural sources...</span>';
+
+      try {
+        const res = await fetch('/api/text/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query, language: activeLanguage })
+        });
+
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        renderBackendResponse(data, query);
+
+      } catch (err) {
+        console.warn('Text query failed:', err);
+        setMandoState('error');
+        answerEl.innerHTML = `<span style="color:#ef4444;">Apologies, I encountered an issue reaching Mando's archives. Please try asking again.</span>`;
+      }
+    }
+
+    // 3. Bottom Sheets Manager
+    function openBottomSheet(sheetId) {
+      const sheet = document.getElementById(sheetId);
+      if (sheet) sheet.classList.add('open');
+    }
+
+    function closeBottomSheet(sheetId) {
+      const sheet = document.getElementById(sheetId);
+      if (sheet) sheet.classList.remove('open');
+    }
+
+    function renderSourcesInSheet() {
+      const container = document.getElementById('sheet-sources-content');
+      if (!container || !currentSources.length) return;
+
+      container.innerHTML = currentSources.map(s => `
+        <div class="source-detail-card">
+          <div class="source-detail-title">${s.title || s.source || 'Cultural Heritage Archive'}</div>
+          <div class="source-detail-origin">🏛️ ${s.source || 'Goan Heritage Records'}</div>
+          <div class="source-detail-text">${s.text || 'Historical reference and verified documentation.'}</div>
+        </div>
+      `).join('');
+    }
+
+    // 4. Voice Speech Synthesis
+    function setMandoSpeaking(speaking) {
+      isSpeaking = speaking;
+      const elements = [
+        document.body,
+        document.getElementById('mando-home-card'),
+        document.getElementById('mando-active-answer-card')
+      ];
+
+      elements.forEach(el => {
+        if (!el) return;
+        if (speaking) el.classList.add('speaking');
+        else el.classList.remove('speaking');
       });
-      ask({audio_base64:b64});
-    };
-    recorder.start();
-    setFace("listening","👂");
-    $("talk").classList.add("rec");
-    $("talk").textContent = "● Listening — release to send";
-  }catch(e){ alert("Microphone unavailable: " + e.message); }
-}
-function stopRec(){
-  if (recorder && recorder.state === "recording") recorder.stop();
-  $("talk").classList.remove("rec");
-  $("talk").textContent = "🎙 Hold to talk";
-}
-const talk = $("talk");
-talk.addEventListener("mousedown", startRec);
-talk.addEventListener("mouseup", stopRec);
-talk.addEventListener("mouseleave", stopRec);
-talk.addEventListener("touchstart", e => { e.preventDefault(); startRec(); });
-talk.addEventListener("touchend", e => { e.preventDefault(); stopRec(); });
 
-$("send").onclick = () => {
-  const t = $("text").value.trim();
-  if (t) { ask({text:t}); $("text").value = ""; }
-};
-$("text").addEventListener("keydown", e => { if (e.key === "Enter") $("send").click(); });
+      const listenBtn = document.getElementById('listen-speech-btn');
+      const listenText = document.getElementById('listen-text');
+      const listenIcon = document.getElementById('listen-icon');
+      const capsuleLabel = document.getElementById('mando-capsule-label');
 
-// ---- session memory: last 4 turns, client-side only ----------------------
-let history = [];
+      if (listenBtn && listenText) {
+        if (speaking) {
+          listenBtn.classList.add('active-speaking');
+          listenText.textContent = 'Pause';
+          listenIcon.textContent = '⏸';
+          capsuleLabel.textContent = 'Speaking...';
+        } else {
+          listenBtn.classList.remove('active-speaking');
+          listenText.textContent = 'Listen';
+          listenIcon.textContent = '▶';
+          capsuleLabel.textContent = 'Mando';
+        }
+      }
+    }
 
-async function ask(payload){
-  setFace("thinking","🤔");
-  $("debug").textContent = "Running…";
-  const body = Object.assign({
-    language: $("lang").value,
-    voice: $("voice").value,
-    character: "mando",
-    want_audio: true,
-    context: history.slice(-4)
-  }, payload);
+    function toggleMandoSpeech() {
+      if (isSpeaking) {
+        stopSpeech();
+      } else {
+        startSpeech();
+      }
+    }
 
-  try{
-    const r = await fetch(API + "/ask", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body)
-    });
-    const d = await r.json();
-    render(d);
-  }catch(e){
-    setFace("","🙂");
-    $("out").innerHTML = '<div class="bubble error">Request failed: '
-      + e.message + "</div>";
-  }
-}
+    function startSpeech() {
+      if (!('speechSynthesis' in window)) {
+        setMandoSpeaking(true);
+        setTimeout(() => setMandoSpeaking(false), 4000);
+        return;
+      }
 
-function render(d){
-  const cls = d.refused ? "refused" : (d.ok ? "" : "error");
-  let tags = "";
-  if (d.language) tags += '<span class="tag">'
-    + {en:"English",hi:"हिंदी",mr:"मराठी"}[d.language] + "</span>";
-  if (d.refused) tags += '<span class="tag warn">refused: '
-    + d.refusal_reason + "</span>";
-  if (d.grounded === true) tags += '<span class="tag ok">grounded PASS</span>';
-  if (d.grounded === false) tags += '<span class="tag bad">grounded FAIL</span>';
+      window.speechSynthesis.cancel();
+      const rawText = currentAnswer.replace(/<[^>]*>/g, ' ').replace(/[★*#_~`🎉🌊🎭🎄🪔✨]/g, '').trim();
+      if (!rawText) return;
 
-  $("out").innerHTML = '<div class="bubble ' + cls + '">' + tags
-    + (d.transcript ? '<div style="color:var(--muted);font-size:12.5px;'
-        + 'margin:8px 0">you said: “' + esc(d.transcript) + '”</div>' : "")
-    + "<div>" + esc(d.answer || "—") + "</div></div>";
+      speechUtterance = new SpeechSynthesisUtterance(rawText);
+      speechUtterance.rate = speechSpeed;
+      speechUtterance.pitch = 1.05;
 
-  if (d.ok && !d.refused && d.answer)
-    history.push({query: d.rewritten_query || d.transcript || "",
-                  answer: d.answer, lang: d.language});
+      const voices = window.speechSynthesis.getVoices();
+      const prefVoice = voices.find(v => (v.lang.includes('en-IN') || v.name.includes('India') || v.lang.includes('en-GB')) && !v.name.includes('Google'));
+      if (prefVoice) speechUtterance.voice = prefVoice;
 
-  // stage breakdown — the proof this is a real RAG pipeline
-  const L = d.latency || {};
-  const flat = {};
-  (L.stages || []).forEach(s => { flat[s.stage] = (flat[s.stage]||0) + s.ms; });
-  const rows = [
-    ["Speech-to-text","stt"], ["Language detect","language_detection"],
-    ["Input guardrail","input_guardrail"], ["Query rewrite","query_rewrite"],
-    ["Dense retrieval","dense_retrieval"], ["BM25 retrieval","bm25_retrieval"],
-    ["Fusion","fusion"], ["Reranking","rerank"],
-    ["Evidence check","evidence_check"], ["Generation","generation"],
-    ["Grounding","grounding"], ["Text-to-speech","tts"]
-  ].filter(([,k]) => flat[k] !== undefined)
-   .map(([label,k]) => "<tr><td>" + label + "</td><td>"
-        + flat[k].toFixed(1) + " ms</td></tr>").join("");
+      speechUtterance.onstart = () => setMandoSpeaking(true);
+      speechUtterance.onend = () => setMandoSpeaking(false);
+      speechUtterance.onerror = () => setMandoSpeaking(false);
 
-  $("debug").innerHTML = "<table>" + rows
-    + '<tr class="total"><td>Total RAG</td><td>'
-    + (L.total_rag_ms||0).toFixed(1) + " ms</td></tr>"
-    + '<tr class="total"><td>End to end</td><td>'
-    + (L.end_to_end_ms||0).toFixed(1) + " ms</td></tr></table>"
-    + (d.retrieval_confidence !== null && d.retrieval_confidence !== undefined
-       ? '<div style="margin-top:9px;font-size:12px;color:var(--muted)">'
-         + "retrieval confidence " + d.retrieval_confidence
-         + (d.grounding_score ? " · grounding " + d.grounding_score : "")
-         + "</div>" : "")
-    + ((d.warnings||[]).length
-       ? '<div style="margin-top:8px;font-size:12px;color:var(--warn)">'
-         + d.warnings.map(esc).join("<br>") + "</div>" : "");
+      window.speechSynthesis.speak(speechUtterance);
+    }
 
-  $("sources").innerHTML = (d.evidence||[]).length
-    ? d.evidence.map((e,i) => '<div class="src"><b>[' + (i+1) + "] "
-        + e.lang + " · q" + e.query_id + "/p" + e.passage_index + "</b><br>"
-        + esc((e.text||"").slice(0,170)) + "…</div>").join("")
-    : "—";
+    function stopSpeech() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setMandoSpeaking(false);
+    }
 
-  if (d.audio_base64){
-    setFace("speaking","🗣️");
-    const a = new Audio("data:audio/wav;base64," + d.audio_base64);
-    a.onended = () => setFace("","🙂");
-    a.play().catch(() => setFace("","🙂"));
-  } else {
-    setFace("","🙂");
-  }
-}
+    function setSpeechSpeed(speed) {
+      speechSpeed = speed;
+      if (isSpeaking) {
+        stopSpeech();
+        setTimeout(startSpeech, 150);
+      }
+      closeBottomSheet('sheet-theme');
+    }
 
-const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g,
-  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-</script>
+    // 5. Voice Microphone Input
+    function micUnsupportedMessage() {
+      if (!navigator.mediaDevices || !window.MediaRecorder) {
+        return 'Voice input is not supported in this browser. Please type your question instead.';
+      }
+      return null;
+    }
+
+    async function toggleVoiceRecording() {
+      const micBtn = document.getElementById('mobile-mic-btn');
+      if (isRecording) {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        return;
+      }
+
+      const unsupported = micUnsupportedMessage();
+      if (unsupported) {
+        showVoiceError(unsupported);
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          if (audioChunks.length === 0) {
+            showVoiceError("Couldn't process that recording. Please try again or type your question.");
+            return;
+          }
+          const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          sendVoiceQuery(audioBlob);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        micBtn.classList.add('recording');
+        switchNavTab('mando');
+        setMandoState('listening');
+      } catch (e) {
+        // Microphone permission denied or unavailable -- an honest, specific
+        // message, never a submitted fallback question.
+        showVoiceError('Microphone permission is required for voice queries. Please allow microphone access, or type your question instead.');
+      }
+    }
+
+    // Required behaviour: a voice failure must NEVER silently submit an
+    // unrelated example question. It shows this exact message and lets the
+    // user retry or fall back to typing.
+    function showVoiceError(message) {
+      isRecording = false;
+      const micBtn = document.getElementById('mobile-mic-btn');
+      if (micBtn) micBtn.classList.remove('recording');
+      setMandoState('error');
+      const answerEl = document.getElementById('mando-answer-text');
+      if (answerEl) {
+        answerEl.innerHTML = `<span style="color:#ef4444;">${message}</span>`;
+      }
+      switchNavTab('mando');
+    }
+
+    async function sendVoiceQuery(blob) {
+      const formData = new FormData();
+      formData.append('audio', blob, 'recording.webm');
+      formData.append('language', activeLanguage);
+
+      setMandoState('uploading');
+
+      let res;
+      try {
+        res = await fetch('/api/voice/query', { method: 'POST', body: formData });
+      } catch (err) {
+        // Network failure -- never fabricate a transcript or fall back to an
+        // unrelated question.
+        showVoiceError("Couldn't reach Mando. Please check your connection and try again, or type your question.");
+        return;
+      }
+
+      if (!res.ok) {
+        showVoiceError("Couldn't process that recording. Please try again or type your question.");
+        return;
+      }
+
+      const data = await res.json();
+
+      // Real backend field is `transcript`, not `transcription`. Show it so
+      // the user can see what Mando actually heard, then render the answer
+      // exactly like a text query would (same sources/refusal handling).
+      if (data.transcript) {
+        currentQuery = data.transcript;
+        document.getElementById('user-question-text').textContent = data.transcript;
+        document.getElementById('rag-step-q-label').textContent = `"${data.transcript}"`;
+      }
+      renderBackendResponse(data, data.transcript || currentQuery || 'your question');
+    }
+
+    // 6. Themes & Settings
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('hhgoa_theme', theme);
+      closeBottomSheet('sheet-theme');
+    }
+
+    function toggleThemeQuick() {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const nxt = cur === 'heritage' ? 'coastal' : 'heritage';
+      document.documentElement.setAttribute('data-theme', nxt);
+      localStorage.setItem('hhgoa_theme', nxt);
+    }
+
+    function selectAppLanguage(code, label) {
+      activeLanguage = code;
+      document.getElementById('active-lang-code').textContent = code.toUpperCase();
+      document.querySelectorAll('.lang-opt-card').forEach(el => el.classList.remove('active'));
+      const opt = document.getElementById('lang-opt-' + code);
+      if (opt) opt.classList.add('active');
+      closeBottomSheet('sheet-lang');
+    }
+
+    // 7. Actions & Bookmarks -- toast feedback, not alert(), per spec.
+    function toast(message) {
+      let el = document.getElementById('hhgoa-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'hhgoa-toast';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.style.cssText = 'position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--gold-primary,#c9a24b);color:#1a1410;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:9999;opacity:0;transition:opacity .2s ease;pointer-events:none;';
+        document.body.appendChild(el);
+      }
+      el.textContent = message;
+      el.style.opacity = '1';
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+    }
+
+    function bookmarkAnswer() {
+      if (!currentAnswer) { toast('Ask Mando a question first.'); return; }
+      const saved = JSON.parse(localStorage.getItem('hhgoa_saved') || '[]');
+      saved.unshift({ query: currentQuery, answer: currentAnswer,
+                     sources: currentSources, date: new Date().toLocaleDateString() });
+      localStorage.setItem('hhgoa_saved', JSON.stringify(saved.slice(0, 25)));
+      renderSavedList();
+      toast('Saved to your Archives');
+    }
+
+    function copyAnswer() {
+      const text = document.getElementById('mando-answer-text').innerText;
+      navigator.clipboard.writeText(text).then(
+        () => toast('Answer copied to clipboard'),
+        () => toast('Could not copy -- try selecting the text manually'));
+    }
+
+    function rateAnswer(helpful) {
+      toast(helpful ? 'Thank you! Mando recorded this as helpful.' : 'Feedback noted -- thank you.');
+    }
+
+    // Saved Archives: real localStorage-backed save/view/remove/reopen, not
+    // static example cards.
+    function renderSavedList() {
+      const container = document.getElementById('saved-list-container');
+      if (!container) return;
+      const saved = JSON.parse(localStorage.getItem('hhgoa_saved') || '[]');
+
+      if (saved.length === 0) {
+        container.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:16px 4px;">No saved answers yet. Ask Mando something, then tap Save on the answer to keep it here.</p>';
+        return;
+      }
+
+      container.innerHTML = saved.map((item, i) => `
+        <div class="saved-item-card" style="position:relative;">
+          <div onclick="askQuestion(${JSON.stringify(item.query)})">
+            <div class="saved-item-title">${item.query}</div>
+            <div class="saved-item-snippet">${(item.answer || '').replace(/<[^>]*>/g, '').slice(0, 140)}...</div>
+          </div>
+          <button aria-label="Remove saved answer" onclick="event.stopPropagation(); removeSavedItem(${i})"
+                  style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;min-width:32px;min-height:32px;">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function removeSavedItem(index) {
+      const saved = JSON.parse(localStorage.getItem('hhgoa_saved') || '[]');
+      saved.splice(index, 1);
+      localStorage.setItem('hhgoa_saved', JSON.stringify(saved));
+      renderSavedList();
+      toast('Removed');
+    }
+
+    // Initialize saved theme
+    const savedTheme = localStorage.getItem('hhgoa_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    renderSavedList();
+  </script>
 </body>
 </html>

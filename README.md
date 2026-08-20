@@ -625,7 +625,14 @@ Serve:
 uvicorn app.main:app --reload
 ```
 
-Open <http://localhost:8000> for the UI. Or with Docker:
+Open <http://localhost:8000> for the UI -- FastAPI serves `frontend/index.html`
+directly at `/` (same origin, so no CORS setup is needed to use it locally).
+The UI is a single self-contained HTML file (inline CSS/JS, no build step, no
+Node server) that talks only to the versioned public API described in
+`docs/api-v1.md`: `POST /api/text/query`, `POST /api/voice/query`,
+`GET /api/health`, `GET /api/config`. There is exactly one backend -- this
+FastAPI app is the only thing that answers those routes; nothing else needs
+to run. Or with Docker:
 
 ```bash
 docker compose up --build
@@ -660,8 +667,13 @@ ingestion/
   chunk.py           six chunking strategies
   index.py           offline index build
 evaluation/          see the table above
-tests/               56 tests, including regressions for both silent bugs
-frontend/index.html  push-to-talk UI with live stage breakdown
+tests/               370 tests, including regressions for both silent bugs
+frontend/index.html  the HHGoa/Mando UI -- self-contained (inline CSS/JS,
+                     no build step), served by FastAPI at `/`. Text chat,
+                     push-to-talk voice, language selector (auto/en/hi/mr/kok
+                     -- exactly what the API accepts), Explore/Timeline/Saved
+                     tabs, two themes. Talks only to the public API in
+                     docs/api-v1.md; no hardcoded answers or fake backend.
 ```
 
 ---

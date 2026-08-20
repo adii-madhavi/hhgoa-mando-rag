@@ -333,6 +333,71 @@ class TestCORS:
 
 
 # --------------------------------------------------------------------------
+# Frontend integration: the real HHGoa/Mando UI is served at "/" and talks
+# only to the real public API contract, never a fabricated field name or a
+# hardcoded fallback answer.
+# --------------------------------------------------------------------------
+class TestFrontendIntegration:
+    def test_root_serves_the_real_frontend(self, client):
+        r = client.get("/")
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+        assert "HHGoa" in r.text and "Mando" in r.text
+
+    def test_frontend_calls_the_real_endpoints_not_a_mock_backend(self, client):
+        """
+        The frontend must POST to the real /api/text/query and
+        /api/voice/query routes -- not a duplicate demo server (e.g. a Node
+        server.ts on a different port).
+        """
+        text = client.get("/").text
+        assert "/api/text/query" in text
+        assert "/api/voice/query" in text
+        assert "localhost:3000" not in text
+
+    def test_frontend_reads_the_real_transcript_field(self, client):
+        """
+        REGRESSION: the frontend previously checked `data.transcription`,
+        but the real backend field is `transcript` -- that mismatch meant
+        the field silently never fired.
+        """
+        text = client.get("/").text
+        assert "data.transcript" in text
+        assert "data.transcription" not in text
+
+    def test_frontend_language_selector_only_offers_real_backend_codes(self, client):
+        """
+        REGRESSION: the selector previously offered 'ROMI' and 'PT', which
+        the backend rejects with 422 -- a decorative selector. It must only
+        ever send codes the backend actually accepts.
+        """
+        text = client.get("/").text
+        for code in ("selectAppLanguage('auto'", "selectAppLanguage('en'",
+                    "selectAppLanguage('hi'", "selectAppLanguage('mr'",
+                    "selectAppLanguage('kok'"):
+            assert code in text
+        assert "selectAppLanguage('ROMI'" not in text
+        assert "selectAppLanguage('PT'" not in text
+
+    def test_frontend_voice_failure_never_submits_a_fallback_question(self, client):
+        """
+        REGRESSION: a failed voice request previously called
+        askQuestion('Tell me about São João Festival in Goa') -- silently
+        substituting an unrelated example question. That pattern must be
+        gone; failures must show an honest error message instead.
+        """
+        text = client.get("/").text
+        assert "askQuestion('Tell me about São João Festival in Goa')" not in text
+        assert "Couldn't process that recording" in text
+
+    def test_frontend_never_embeds_api_keys(self, client):
+        text = client.get("/").text
+        for marker in SECRET_MARKERS:
+            assert marker not in text
+        assert "GoogleGenAI" not in text and "GEMINI_API_KEY" not in text
+
+
+# --------------------------------------------------------------------------
 # Internal API is unaffected (regression guard)
 # --------------------------------------------------------------------------
 class TestInternalAPIUnchanged:
