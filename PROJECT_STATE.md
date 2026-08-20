@@ -13,15 +13,17 @@ every major task.
 built separately against `docs/api-v1.md`. Do not create/modify frontend/,
 React/Next.js, HTML, CSS, or Mando visual assets from the backend side.
 
-Phases 1-3 are complete. Phases 5-8 (Sarvam STT/TTS, voice loop, UI) are
-gated on `SARVAM_API_KEY` AND on resolving generation latency.
+Phases 1-3 complete. Voice pipeline wiring (Sarvam STT -> RAGPipeline ->
+guarded generation -> Sarvam TTS) is BUILT and MOCK-TESTED (39 tests). It has
+NEVER been exercised live: `.env` has `LLM_API_KEY` but **no `SARVAM_API_KEY`**.
+UI remains out of scope for backend work.
 
 ---
 
 ## One-line status
 
 A measured multilingual RAG system over MSMARCO-XI with grounded Mando
-generation live in English, Hindi and Marathi. **321 tests pass.**
+generation live in English, Hindi and Marathi. **360 tests pass.**
 Retrieval core **22-50 ms P50**; the answerability judge is off the critical
 path (**inline 0.0 ms**). LLM generation adds **~4.3 s P50** after the E17
 model switch — median fixed, but the **tail (P100 65 s)** is the open blocker
@@ -35,7 +37,7 @@ for a voice product.
 |---|---|---|
 | **Generation tail** | a reliable voice UX | Streaming (E18) gives TTFV P50 **391 ms** -- 10.7x better PERCEIVED latency -- but total generation is still ~4.2s P50, 9.4s P100. A 20s hard deadline is now enforced client-side (`LLMGenerator.deadline_s`); Marathi hit it 4/12 times in the benchmark, always cleanly (refusal, never a broken partial answer). |
 | **Pipeline-level streaming** | true mid-generation SSE through the guarded chain | Streaming exists at `LLMGenerator.generate_stream()` (fully guarded: citations validated, evidence-only). `RAGPipeline.run()` itself is still synchronous end-to-end -- deliberately deferred, larger change. Public API's SSE today streams the COMPLETED answer word-chunked, documented as such in docs/api-v1.md. |
-| **`SARVAM_API_KEY`** | Phases 5–7, 10 | No STT, no TTS, no voice-loop latency |
+| **`SARVAM_API_KEY`** | live STT/TTS, Phase 10 voice-loop latency | Not in `.env`. Voice pipeline code is complete and mock-tested (`tests/test_voice.py`, 39 tests) but has never made a real Sarvam call. Live check ready: `python evaluation/sarvam_live_check.py` -- currently exits cleanly with no key rather than fabricating a result. |
 
 `LLM_API_KEY` is present and working. Judge latency is RESOLVED as a blocker:
 it runs async with a verdict cache, measured inline cost 0.0 ms.
@@ -78,6 +80,7 @@ All numbers reproducible via the command in `EXPERIMENTS.md`.
 | Generation model | **sarvam-105b-conversations** (non-reasoning). 3.6x faster than sarvam-105b with quality held: grounded 0.86-0.88, correct language, valid citations - E17 |
 | Streaming (E18) | TTFT P50 **246ms** / TTFV P50 **391ms** (10.7x perceived-latency win) / generation P50 4,175ms P100 9,430ms. Deadline refusal rate 11.1% (all Marathi), failure rate 0.0%. Hard 20s wall-clock deadline enforced; incomplete-answer marking never trusts citations from a truncated stream. |
 | Public API v1 | `app/api/v1/` -- thin adapter over `RAGPipeline`, internal `RAGResponse` unmodified. 4 endpoints, content-negotiated JSON/SSE, multipart voice upload. 35 tests assert schema isolation (no internal field/secret ever serialized). Documented in `docs/api-v1.md`. |
+| Voice pipeline (STT+TTS) | Sarvam STT -> RAGPipeline -> guarded generation -> Sarvam TTS is fully wired (`app/pipeline.py` Stage.stt/Stage.tts) and was already structurally correct from an earlier phase. 39 NEW mocked tests added (request shape, retry/4xx-vs-5xx classification, Konkani-TTS rejection, full round trip, TTS-failure-is-non-fatal, STT-failure-refuses-cleanly). **Never run against the live API** -- no `SARVAM_API_KEY` in `.env`. |
 | Guardrails | adversarial **7/7**; injection blocked in all 3 languages |
 | Generation (Phase 3) | LLMGenerator on shared ChatClient, strict schema, citation validation. Live in en/hi/mr: grounded, correct language, valid citations |
 | Judge deployment | **ASYNC** - inline cost 0.0 ms in every request; background P50 5.9 s excluded by construction |

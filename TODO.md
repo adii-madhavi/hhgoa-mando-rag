@@ -20,8 +20,12 @@ OUT OF SCOPE for backend work -- it will be built separately against that doc.
 
 Remaining, in order:
 
-- [ ] **`SARVAM_API_KEY`** to unblock Phases 5-7, 10 (STT, TTS, voice loop) --
-      the only remaining external blocker.
+- [ ] **`SARVAM_API_KEY`** -- still not in `.env`. Voice pipeline code is DONE
+      and mock-tested (39 tests, tests/test_voice.py); only the live call is
+      blocked. Once added, run the small live check:
+      `python evaluation/sarvam_live_check.py`
+      (2 real calls: TTS synthesizes a phrase, STT transcribes it back. Never
+      prints the key.)
 - [ ] **Pipeline-level streaming.** `LLMGenerator.generate_stream()` is fully
       guarded and works; `RAGPipeline.run()` is still synchronous end-to-end.
       The public API's SSE endpoint currently streams the COMPLETED answer
@@ -70,6 +74,33 @@ numbers and never merged.
 - [x] python-multipart added (was missing; needed for UploadFile/Form)
 - [x] 35 new tests: schema isolation, secret-leak checks, validation, SSE, multipart
 - [x] 321 tests passing (was 237)
+
+## ✅ VOICE PIPELINE WIRING DONE (mock-tested; live call still blocked)
+
+- [x] Confirmed `app/pipeline.py` already implements Sarvam STT -> RAGPipeline
+      -> guarded generation -> Sarvam TTS end-to-end (built in an earlier
+      phase; this task found it structurally complete, just untested/unrun)
+- [x] `tests/test_voice.py` -- 39 new tests:
+      - SarvamSTT: multipart request shape, auto-language field omission,
+        429/5xx retry, 4xx fail-fast, invalid/empty base64 handling, offline
+        mode (no key)
+      - SarvamTTS: JSON request shape, Konkani rejection (no Marathi
+        substitution), voice->speaker mapping, digit-grouping, truncation,
+        429/5xx retry, 4xx fail-fast, empty-audios-list error
+      - Full pipeline round trip with scripted STT+TTS doubles: audio in ->
+        transcript -> guarded generation -> audio out; Stage.stt/Stage.tts
+        latency recorded; want_audio=False skips TTS; text path still
+        bypasses STT
+      - Degradation: STT failure/offline -> clean refusal, never a crash;
+        TTS failure -> NON-fatal, text answer still returned with a warning
+      - Secret hygiene: API key never appears in a repr or an error message
+- [x] `evaluation/sarvam_live_check.py` -- small 2-call live smoke test
+      (TTS synthesize -> STT transcribe the result back). Exits cleanly with
+      no key, matching this project's "never fabricate a result" convention.
+      Verified: currently exits correctly (no key set), makes zero network
+      calls in that path.
+- [x] 360 tests passing (was 321)
+- [ ] **Not yet done: the actual live call.** Needs `SARVAM_API_KEY` in `.env`.
 
 ---
 
