@@ -287,6 +287,19 @@ class TestVoiceEndpoint:
 # Health / config
 # --------------------------------------------------------------------------
 class TestHealthConfig:
+    def test_judge_is_actually_wired_when_llm_is_available(self, client):
+        """
+        REGRESSION: app.main's startup() previously constructed RAGPipeline
+        without judge=, so the deployed app silently ran on cosine-only
+        guardrails even though EXPERIMENTS.md documents async judge + cache
+        as the decided production shape (E15/E16/E20) -- that shape was
+        built and benchmarked, but never actually connected here. If this
+        flag is False while an LLM key is configured, the fix regressed.
+        """
+        body = client.get("/api/config").json()
+        if body["feature_flags"]["llm_generation"]:
+            assert body["feature_flags"]["answerability_judge"] is True
+
     def test_health_only_public_fields(self, client):
         r = client.get("/api/health")
         body = r.json()

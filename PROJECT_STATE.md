@@ -4,6 +4,8 @@
 **Generation P50 4.3s (E17); streaming TTFV P50 391ms gives ~10.7x perceived-latency win (E18).**
 **Public API contract live at /api/* (docs/api-v1.md) as a thin adapter -- internal pipeline untouched.**
 **Refusals now speak; hard deadlines added to every voice-path network call; voice-loop benchmark BLOCKED at n=7/120 by Sarvam account credit exhaustion -- see E20.**
+**Frontend (Google AI Studio export) integrated at frontend/index.html, served by FastAPI at "/"; real integration bugs fixed (transcript field, fallback-question bug, language codes) -- see the "Frontend integration" commit.**
+**FINAL HARDENING PASS (this task): found and fixed a real production bug -- app.main's deployed pipeline never wired the answerability judge despite it being the documented production shape (E15/E16/E20). Fixed; 377 tests pass. Sarvam account now has ZERO credits for BOTH TTS and LLM generation (HTTP 402 on every real call) -- live demo verification beyond schema/failure-path checks is blocked until credits are topped up.**
 Last updated: 2026-08-20 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
@@ -43,11 +45,43 @@ for a voice product.
 | **Pipeline-level streaming** | true mid-generation SSE through the guarded chain | Streaming exists at `LLMGenerator.generate_stream()` (fully guarded: citations validated, evidence-only). `RAGPipeline.run()` itself is still synchronous end-to-end -- deliberately deferred, larger change. Public API's SSE today streams the COMPLETED answer word-chunked, documented as such in docs/api-v1.md. |
 | **Voice-loop latency, at scale** | production readiness | PARTIALLY MEASURED (E20, see below). The Sarvam account ran out of TTS credits (HTTP 402) 8 queries into the English pass, then rate-limited (429) for the rest of the run. Only **n=7 English** real voice-loop measurements exist; **Hindi and Marathi have ZERO benchmark data.** Not fabricated -- re-run needs Sarvam credits topped up. |
 | **Cache-hit-rate evidence for async judge** | production deployment shape (priority 4) | BLOCKED by the same credit exhaustion -- 0 of the planned repeat-query cache-hit checks completed. The deployment decision (below) is made on existing E15/E16 evidence only, not new data. |
+| **Sarvam account has zero credits, LLM included** | live demo verification | Found in this pass: every real `/api/text/query` call now returns `HTTP 402 insufficient_quota_error` from `api.sarvam.ai/v1/chat/completions` -- not just TTS (already known), the LLM proxy too, since both share the same Sarvam account/key. The pipeline degrades correctly (clean `internal_error` refusal, no crash, no leaked secret) but no real grounded answer can be produced or demonstrated live until credits are topped up. |
 
-`LLM_API_KEY` is present and working. Judge latency is RESOLVED as a blocker:
-it runs async with a verdict cache, measured inline cost 0.0 ms.
+`LLM_API_KEY` is present and working (API-key-wise; account-credit-wise it is
+currently exhausted, see above). Judge latency is RESOLVED as a blocker: it
+runs async with a verdict cache, measured inline cost 0.0 ms -- **and, as of
+this pass, is now actually wired into the deployed app** (see below; it
+previously was not).
 The Sarvam STT/TTS clients remain verified against published contracts but
-never exercised live.
+never exercised live successfully in this session (credits exhausted).
+
+### Resolved this task (Final Hardening Pass)
+
+- **REAL BUG FOUND AND FIXED: the deployed app never ran the answerability
+  judge.** `app/main.py`'s `startup()` constructed `RAGPipeline(...)` without
+  `judge=`, so the async-judge-plus-cache configuration documented as the
+  production shape since E15/E16 (and re-affirmed as a deliberate decision in
+  E20) was built, benchmarked, and tested -- but never actually connected to
+  the app real users/the frontend talk to. Every eval script constructs its
+  own `RAGPipeline` with the judge attached, which is why this went
+  unnoticed: the EXPERIMENTS.md numbers are real measurements, they just
+  weren't running in production. Fixed by wiring
+  `AnswerabilityJudge(timeout_s=8.0)` + `judge_mode="async"` into `startup()`
+  when `CONFIG.has_llm`, plus a `shutdown()` handler to close its thread
+  pool cleanly. Verified live: `GET /api/config` now reports
+  `answerability_judge: true` (was `false`). Pinned with a new regression
+  test, `TestHealthConfig::test_judge_is_actually_wired_when_llm_is_available`.
+- **Audited for other real blockers** (clean-environment import, route
+  registration, CORS, secret leakage, stale Node-backend references,
+  internal-field leakage, dependency/import sanity) -- all clean, nothing
+  else found. Per the "don't touch what's already correct" instruction for
+  this pass, nothing else was changed.
+- **Live E2E check attempted** (English + Hindi text queries against a real
+  running server): both returned a clean, correctly-shaped refusal rather
+  than a fabricated answer, because the Sarvam account's LLM credits are
+  also exhausted (see blocker above). This is a real, honest finding, not a
+  code defect -- the failure path itself is exactly what priority 6 asked
+  to verify, and it worked correctly under a genuine live failure.
 
 ### Resolved this task (Phase 10)
 

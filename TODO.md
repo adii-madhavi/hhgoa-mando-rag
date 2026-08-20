@@ -7,29 +7,52 @@ Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
 
 ---
 
-## 🔴 NEXT ACTION — top up Sarvam credits, then finish the voice-loop benchmark
+## 🔴 NEXT ACTION — top up Sarvam credits (LLM AND TTS), then re-run the voice-loop benchmark
 
-Phase 10 (production readiness) ran this task. Refusal audio, hard voice-path
-deadlines, and the async-judge deployment decision (kept: async + cache, on
-existing E15/E16 evidence) are DONE -- see EXPERIMENTS.md E20. The 100+-query
-voice-loop benchmark is BLOCKED: the Sarvam account ran out of TTS credits 8
-queries into the English pass (`HTTP 402 insufficient_quota_error`), then
-rate-limited for the rest. Only n=7 English measurements exist; hi/mr have
-ZERO. The script (`evaluation/voice_loop_benchmark.py`) is complete and
-smoke-tested -- re-run it as-is once credits are topped up:
+**DONE this pass (Final Hardening):**
+- [x] Fixed a real production bug: `app/main.py` never wired the
+      answerability judge into the deployed pipeline (it was documented as
+      the production shape since E15/E16 but only ever ran inside eval
+      scripts, never in the actual FastAPI app). Fixed + regression-tested.
+- [x] Full repo health audit: clean import, route registration, CORS,
+      secret leakage, stale Node-backend references, internal-field leakage
+      -- all clean, nothing else found.
+- [x] Frontend/backend contract re-verified: no fake fields, no fabricated
+      fallback, no exposed keys (carried over from the prior integration
+      pass, re-checked here).
+- [x] 377/377 tests passing. `.env` confirmed gitignored; diff secret-scanned
+      clean before commit.
+
+**VERIFIED live (this pass):** the failure path itself. A real English and
+Hindi text query both got a clean, correctly-shaped refusal rather than a
+fabricated answer, because the Sarvam account's LLM credits are ALSO
+exhausted now (`HTTP 402 insufficient_quota_error` from
+`api.sarvam.ai/v1/chat/completions`, not just TTS as found in Phase 10). No
+crash, no leaked secret, no stack trace shown to the caller.
+
+**BLOCKED, external, not code:** live demo verification of a real grounded
+answer, voice round trip, or the 100+-query benchmark all need the Sarvam
+account topped up -- **both LLM and TTS credits are at zero.** Once restored:
 
 ```
 python evaluation/voice_loop_benchmark.py --n 40 --repeat-every 8
 ```
 
-- [ ] Top up Sarvam account credits (external action, not code).
+- [ ] Top up Sarvam account credits (external action, not code) -- LLM and
+      TTS both, not just TTS as previously thought.
 - [ ] Re-run the benchmark above to reach n>=100 and get real hi/mr numbers
       plus the cache-hit-rate evidence for the judge deployment decision.
-- [ ] Update EXPERIMENTS.md E20 and PROJECT_STATE.md with the completed
-      numbers once that run finishes.
+- [ ] Do a real live smoke test of `/api/text/query` (en/hi/mr/kok) and one
+      `/api/voice/query` round trip once credits are back, to confirm the
+      newly-wired judge behaves as measured in E15/E16 in production, not
+      just in eval scripts.
+- [ ] Update EXPERIMENTS.md and PROJECT_STATE.md with the completed numbers
+      once that run finishes.
 
-370/370 tests passing. `.env` confirmed gitignored; no secrets in any tracked
-file, log, or exception message (verified via `grep -iE` scan before commit).
+**OPTIONAL FUTURE POLISH (explicitly out of scope for this pass, per
+instruction):** frontend visual polish, animations, CSS refactor, file
+modularization -- to be done separately with other tools. Do not start this
+without a new explicit request.
 
 ---
 

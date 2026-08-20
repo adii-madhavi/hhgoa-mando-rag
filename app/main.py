@@ -36,6 +36,7 @@ from fastapi.responses import JSONResponse
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import CONFIG                              # noqa: E402
+from app.guardrails.answerability import AnswerabilityJudge  # noqa: E402
 from app.pipeline import RAGPipeline                       # noqa: E402
 from app.retrieval.loader import load_index                # noqa: E402
 from app.retrieval.reranker import (CrossEncoderReranker,  # noqa: E402
@@ -86,12 +87,24 @@ def startup() -> None:
         loaded = load_index(CONFIG.index_dir, rrf_k=CONFIG.rrf_k)
         stt = SarvamSTT(CONFIG.sarvam_api_key) if CONFIG.has_stt else None
         tts = SarvamTTS(CONFIG.sarvam_api_key) if CONFIG.has_stt else None
+        # REGRESSION FIX: this constructor never passed judge= before, so the
+        # deployed app silently ran on cosine-only guardrails -- the async
+        # judge + verdict cache measured and decided as the production shape
+        # (EXPERIMENTS.md E15/E16/E20) was built and benchmarked, but never
+        # actually wired into app.main's own pipeline instance. Every eval
+        # script (generation_latency.py, voice_e2e_check.py,
+        # voice_loop_benchmark.py) constructs its OWN RAGPipeline with the
+        # judge attached, which is why this gap went unnoticed: the numbers
+        # in EXPERIMENTS.md are real, but they were never running here.
+        judge = AnswerabilityJudge(timeout_s=8.0) if CONFIG.has_llm else None
         STATE["pipeline"] = RAGPipeline(
             retriever=loaded.retriever, embedder=loaded.embedder,
             reranker=_build_reranker(loaded.embedder,
                                      loaded.retriever.matrix),
             config=CONFIG, stt=stt, tts=tts,
-            dense_matrix=loaded.retriever.matrix)
+            dense_matrix=loaded.retriever.matrix,
+            judge=judge, judge_mode="async",
+            index_version=str(loaded.manifest.get("n_chunks", "")))
         STATE["manifest"] = loaded.manifest
         log.info("index loaded: %d chunks in %.1fs (total startup %.1fs)",
                  len(loaded.chunks), loaded.load_seconds,
@@ -101,6 +114,15 @@ def startup() -> None:
         # container crash-looping with the reason buried in logs.
         STATE["error"] = str(exc)
         log.error("startup failed: %s", exc)
+
+
+@app.on_event("shutdown")
+def shutdown() -> None:
+    """Cleanly close the judge's background thread pool, now that
+    startup() actually creates one (see the judge= fix above)."""
+    pipeline = STATE.get("pipeline")
+    if pipeline is not None:
+        pipeline.shutdown(wait=False)
 
 
 @app.get("/health")
