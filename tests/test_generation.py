@@ -66,6 +66,44 @@ class TestSharedClientMigration:
 
 
 # --------------------------------------------------------------------------
+# Hard client-side deadline on ChatClient.chat() -- shared by generation and
+# the answerability judge. Proves a chronically-transient backend cannot
+# hang a request for the full exponential-backoff schedule (the observed
+# E15/E17 tails), by bounding wall time to well under what max_http_attempts
+# alone would allow.
+# --------------------------------------------------------------------------
+class TestChatClientHardDeadline:
+    class _AlwaysRateLimited:
+        def post(self, *a, **kw):
+            class R:
+                status_code = 429
+                text = "rate limited"
+            return R()
+
+    def test_deadline_stops_retries_early(self):
+        from app.generation.llm_client import ChatClient, LLMTransient
+
+        client = ChatClient(api_key="k", max_http_attempts=10,
+                            retry_deadline_s=0.05)
+        client._client = self._AlwaysRateLimited()
+
+        t0 = time.perf_counter()
+        with pytest.raises(LLMTransient):
+            client.chat([{"role": "user", "content": "hi"}])
+        elapsed = time.perf_counter() - t0
+
+        # 10 attempts of wait_exponential(multiplier=2, max=30) would take
+        # 2+4+8+16+32+... well over a minute. The deadline must cut this off
+        # after roughly one backoff interval, not let it run to attempt 10.
+        assert elapsed < 5.0, (
+            f"deadline did not bound the retry loop: took {elapsed:.1f}s")
+
+    def test_default_deadline_is_bounded_not_disabled(self):
+        from app.generation.llm_client import ChatClient
+        assert 0 < ChatClient(api_key="k").retry_deadline_s < 60
+
+
+# --------------------------------------------------------------------------
 # 2. Structured output
 # --------------------------------------------------------------------------
 class TestStructuredOutput:

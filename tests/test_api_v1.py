@@ -252,6 +252,28 @@ class TestVoiceEndpoint:
         for name in INTERNAL_FIELD_NAMES:
             assert name not in body
 
+    def test_voice_response_has_audio_unavailable_reason_field(self, client):
+        """
+        audio_unavailable_reason is a NEW public field (this task's priority
+        2): must always be present in the contract. Its value is either null
+        (audio present, or not requested) or a string explaining why audio is
+        missing -- this environment has real SARVAM_API_KEY credentials, so
+        the exact outcome (success vs a real transient failure) is not
+        asserted here, only the contract shape.
+        """
+        wav = b"RIFF" + b"\x00" * 40
+        r = client.post(
+            "/api/voice/query", data={"language": "en", "voice": "male"},
+            files={"audio": ("clip.wav", io.BytesIO(wav), "audio/wav")})
+        body = r.json()
+        assert "audio_unavailable_reason" in body
+        assert body["audio_unavailable_reason"] is None \
+            or isinstance(body["audio_unavailable_reason"], str)
+        # never null audio_base64 with a non-null reason omitted, or vice
+        # versa in a way that hides the truth from the frontend
+        if body["audio_base64"]:
+            assert body["audio_unavailable_reason"] is None
+
     def test_voice_sse(self, client):
         wav = b"RIFF" + b"\x00" * 40
         r = client.post(

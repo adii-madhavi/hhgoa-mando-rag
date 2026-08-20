@@ -184,6 +184,10 @@ class RAGResponse(BaseModel):
     language_confidence: float | None = None
     answer: str | None = None
     audio_base64: str | None = None
+    # Set when want_audio was requested but no audio was produced -- e.g. a
+    # Konkani refusal/answer, where bulbul:v3 has no kok-IN voice and TTS
+    # raises rather than substituting another language's voice.
+    audio_unavailable_reason: str | None = None
     evidence: list[Evidence] = Field(default_factory=list)
     grounded: bool | None = None
     grounding_score: float | None = None

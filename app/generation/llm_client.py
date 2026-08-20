@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 
 import httpx
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+                      stop_after_delay, wait_exponential)
 
 
 class LLMError(RuntimeError):
@@ -96,7 +96,7 @@ def extract_json(content: str) -> dict:
 class ChatClient:
     def __init__(self, api_key: str | None = None, model: str | None = None,
                  base_url: str | None = None, timeout_s: float = 15.0,
-                 max_http_attempts: int = 5):
+                 max_http_attempts: int = 5, retry_deadline_s: float = 20.0):
         self.api_key = api_key or os.environ.get("LLM_API_KEY") \
             or os.environ.get("SARVAM_API_KEY")
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
@@ -104,6 +104,14 @@ class ChatClient:
         self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b-conversations")
         self.timeout_s = timeout_s
         self.max_http_attempts = max_http_attempts
+        # HARD wall-clock cap per .chat() call, independent of
+        # max_http_attempts. This is what actually bounds the tails measured
+        # in EXPERIMENTS.md (E15 judge P100 102.5s, E17 generation P100 65s)
+        # -- both come from this same retry loop, shared by generation and
+        # the answerability judge. chat_json() can call chat() up to
+        # max_schema_attempts times, so its own worst case is a small
+        # multiple of this, not unbounded.
+        self.retry_deadline_s = retry_deadline_s
         self.available = bool(self.api_key)
         self._client = httpx.Client(timeout=httpx.Timeout(timeout_s)) \
             if self.available else None
@@ -116,7 +124,8 @@ class ChatClient:
 
         state = {"attempts": 0}
 
-        @retry(stop=stop_after_attempt(self.max_http_attempts),
+        @retry(stop=stop_after_attempt(self.max_http_attempts)
+                   | stop_after_delay(self.retry_deadline_s),
                wait=wait_exponential(multiplier=2.0, max=30.0),
                retry=retry_if_exception_type(LLMTransient), reraise=True)
         def _attempt() -> dict:

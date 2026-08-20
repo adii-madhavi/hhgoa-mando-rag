@@ -33,7 +33,7 @@ from dataclasses import dataclass
 
 import httpx
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+                      stop_after_delay, wait_exponential)
 
 from app.schemas import SARVAM_LANG
 
@@ -61,11 +61,16 @@ class Transcription:
 
 class SarvamSTT:
     def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL,
-                 timeout_s: float = 10.0, max_attempts: int = 3):
+                 timeout_s: float = 10.0, max_attempts: int = 3,
+                 retry_deadline_s: float = 15.0):
         self.api_key = api_key or os.environ.get("SARVAM_API_KEY")
         self.model = model
         self.timeout_s = timeout_s
         self.max_attempts = max_attempts
+        # HARD wall-clock cap across the whole retry loop -- independent of
+        # max_attempts, so a slow/rate-limited backend cannot make a single
+        # voice request hang indefinitely. Whichever bound is hit first wins.
+        self.retry_deadline_s = retry_deadline_s
         self.offline = not bool(self.api_key)
         self._client = None if self.offline else httpx.Client(
             timeout=httpx.Timeout(timeout_s))
@@ -103,7 +108,8 @@ class SarvamSTT:
     # -- internals ---------------------------------------------------------
     def _call(self, audio_bytes: bytes, language: str, filename: str) -> dict:
         @retry(
-            stop=stop_after_attempt(self.max_attempts),
+            stop=stop_after_attempt(self.max_attempts)
+                | stop_after_delay(self.retry_deadline_s),
             wait=wait_exponential(multiplier=0.25, max=2.0),
             retry=retry_if_exception_type(STTTransient),
             reraise=True,

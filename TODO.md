@@ -7,7 +7,33 @@ Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
 
 ---
 
-## 🔴 NEXT ACTION — Sarvam credentials, then pipeline-level streaming
+## 🔴 NEXT ACTION — top up Sarvam credits, then finish the voice-loop benchmark
+
+Phase 10 (production readiness) ran this task. Refusal audio, hard voice-path
+deadlines, and the async-judge deployment decision (kept: async + cache, on
+existing E15/E16 evidence) are DONE -- see EXPERIMENTS.md E20. The 100+-query
+voice-loop benchmark is BLOCKED: the Sarvam account ran out of TTS credits 8
+queries into the English pass (`HTTP 402 insufficient_quota_error`), then
+rate-limited for the rest. Only n=7 English measurements exist; hi/mr have
+ZERO. The script (`evaluation/voice_loop_benchmark.py`) is complete and
+smoke-tested -- re-run it as-is once credits are topped up:
+
+```
+python evaluation/voice_loop_benchmark.py --n 40 --repeat-every 8
+```
+
+- [ ] Top up Sarvam account credits (external action, not code).
+- [ ] Re-run the benchmark above to reach n>=100 and get real hi/mr numbers
+      plus the cache-hit-rate evidence for the judge deployment decision.
+- [ ] Update EXPERIMENTS.md E20 and PROJECT_STATE.md with the completed
+      numbers once that run finishes.
+
+370/370 tests passing. `.env` confirmed gitignored; no secrets in any tracked
+file, log, or exception message (verified via `grep -iE` scan before commit).
+
+---
+
+## Older — Sarvam credentials, then pipeline-level streaming
 
 Streaming is done and measured (E18): TTFT P50 246ms, **TTFV P50 391ms**
 (10.7x better perceived latency than the 4,175ms non-streamed generation), a

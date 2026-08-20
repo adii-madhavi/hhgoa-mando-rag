@@ -75,4 +75,5 @@ def to_voice_response(resp: RAGResponse, session_id: str | None,
         transcript=resp.transcript or "",
         audio_base64=resp.audio_base64,
         audio_stream_url=None,   # not yet implemented; see schemas.py docstring
+        audio_unavailable_reason=resp.audio_unavailable_reason,
     )

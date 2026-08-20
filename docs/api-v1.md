@@ -165,6 +165,7 @@ audio file directly.
   "transcript": "how fast does an eagle travel",
   "audio_base64": "UklGRi4AAABXQVZFZm10...",
   "audio_stream_url": null,
+  "audio_unavailable_reason": null,
   "answer": "...",
   "sources": [...],
   "language": "en",
@@ -176,6 +177,19 @@ audio file directly.
 
 `audio_base64` is `null` when TTS is unavailable — check `guardrail.refused`
 and `answer` in that case; the text answer is still fully valid.
+`audio_unavailable_reason` explains WHY `audio_base64` is `null`, when audio
+was requested but couldn't be produced (e.g. Konkani, which has no Sarvam TTS
+voice). It is `null` whenever `audio_base64` is present, and also `null` when
+audio simply wasn't requested.
+
+**Refused voice queries still get spoken audio when TTS is available.** A
+refusal is a correct, successful outcome (`guardrail.refused: true`), and the
+same validated refusal text used for `answer` is synthesized into
+`audio_base64` exactly like a normal answer — the user hears the refusal
+instead of only reading it. Konkani never falls back to another language's
+voice: a Konkani refusal (or answer) returns `audio_base64: null` with
+`audio_unavailable_reason` set to why, and the refusal text itself is
+English (Konkani has no localised refusal copy either — also never Marathi).
 
 **cURL**
 

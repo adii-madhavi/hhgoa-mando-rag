@@ -124,7 +124,10 @@ class RAGPipeline:
 
     # -- helpers -----------------------------------------------------------
     def _refuse(self, resp: RAGResponse, reason: RefusalReason,
-                lang: str = "en", detail: str = "") -> RAGResponse:
+                lang: str = "en", detail: str = "", *,
+                request: RAGRequest | None = None,
+                lat: Latency | None = None,
+                started: float | None = None) -> RAGResponse:
         resp.ok = True          # a refusal is a SUCCESSFUL, correct outcome
         resp.refused = True
         resp.refusal_reason = reason
@@ -136,8 +139,41 @@ class RAGPipeline:
                 f"refusal copy not available in {lang!r}; replied in English")
         if detail:
             resp.warnings.append(detail)
-        log.info("[%s] refused reason=%s detail=%s",
-                 resp.request_id, reason.value, detail)
+
+        # total_rag_ms is finalised HERE, uniformly, for every refusal path --
+        # several previously left it at 0.0 (e.g. empty_input, STT failure,
+        # prompt injection: nothing upstream ever set it), which would have
+        # under-reported refusal latency in any benchmark. TTS (below) is
+        # deliberately excluded from total_rag_ms, matching the success path.
+        if started is not None:
+            resp.latency.total_rag_ms = (time.perf_counter() - started) * 1000
+            resp.latency.end_to_end_ms = resp.latency.total_rag_ms
+
+        # REFUSED VOICE RESPONSES STILL SPEAK, when TTS is available for the
+        # language. This synthesizes the SAME safe, pre-validated refusal
+        # string already used for text replies -- never generated content, so
+        # it cannot introduce an ungrounded claim. Konkani correctly gets NO
+        # audio here: bulbul:v3 has no kok-IN voice, synthesize() raises, and
+        # the reason is captured explicitly rather than silently substituting
+        # the Marathi voice.
+        if (request is not None and lat is not None and request.want_audio
+                and self.tts is not None):
+            try:
+                with Timer(lat, Stage.tts):
+                    audio = self.tts.synthesize(resp.answer, lang,
+                                                voice=request.voice)
+                resp.audio_base64 = audio.audio_base64
+            except Exception as exc:
+                resp.audio_unavailable_reason = str(exc)
+                resp.warnings.append(
+                    f"tts unavailable for refusal, returning text only: {exc}")
+            if started is not None:
+                resp.latency.end_to_end_ms = (
+                    time.perf_counter() - started) * 1000
+
+        log.info("[%s] refused reason=%s detail=%s audio=%s",
+                 resp.request_id, reason.value, detail,
+                 bool(resp.audio_base64))
         return resp
 
     @staticmethod
@@ -209,7 +245,8 @@ class RAGPipeline:
         with Timer(lat, Stage.validate):
             if not request.has_input():
                 return self._refuse(resp, RefusalReason.empty_input, "en",
-                                    "request carried neither text nor audio")
+                                    "request carried neither text nor audio",
+                                    request=request, lat=lat, started=started)
 
         # 2. STT -----------------------------------------------------------
         stt_lang = None
@@ -219,7 +256,8 @@ class RAGPipeline:
         else:
             if self.stt is None:
                 return self._refuse(resp, RefusalReason.internal_error, "en",
-                                    "audio supplied but no STT client")
+                                    "audio supplied but no STT client",
+                                    request=request, lat=lat, started=started)
             try:
                 with Timer(lat, Stage.stt) as t:
                     result = self.stt.transcribe_base64(
@@ -227,11 +265,13 @@ class RAGPipeline:
                     t.attempts = getattr(result, "attempts", 1)
                 if result.offline:
                     return self._refuse(resp, RefusalReason.internal_error,
-                                        "en", "STT running without credentials")
+                                        "en", "STT running without credentials",
+                                        request=request, lat=lat, started=started)
                 transcript, stt_lang = result.text, result.language_code
             except Exception as exc:
                 return self._refuse(resp, RefusalReason.internal_error, "en",
-                                    f"stt failed: {exc}")
+                                    f"stt failed: {exc}",
+                                    request=request, lat=lat, started=started)
         resp.transcript = transcript
 
         # 3. language detection -- never fatal ------------------------------
@@ -250,7 +290,8 @@ class RAGPipeline:
         with Timer(lat, Stage.input_guardrail):
             guard = check_input(transcript)
         if not guard.allowed:
-            return self._refuse(resp, guard.reason, lang, guard.detail)
+            return self._refuse(resp, guard.reason, lang, guard.detail,
+                                request=request, lat=lat, started=started)
 
         # 5. query rewriting -- never fatal ---------------------------------
         query = transcript
@@ -273,7 +314,8 @@ class RAGPipeline:
         except Exception as exc:
             lat.add(Stage.dense_retrieval, 0.0, ok=False, error=str(exc))
             return self._refuse(resp, RefusalReason.internal_error, lang,
-                                f"retrieval failed: {exc}")
+                                f"retrieval failed: {exc}",
+                                request=request, lat=lat, started=started)
 
         # 7. rerank -- degrade to fused order on failure --------------------
         # The query vector comes from the dense stage; the reranker's candidate
@@ -300,10 +342,9 @@ class RAGPipeline:
             for c in candidates]
 
         if not decision.sufficient:
-            resp.latency.total_rag_ms = (time.perf_counter() - started) * 1000
-            resp.latency.end_to_end_ms = resp.latency.total_rag_ms
             return self._refuse(resp, RefusalReason.insufficient_evidence,
-                                lang, decision.detail)
+                                lang, decision.detail,
+                                request=request, lat=lat, started=started)
 
         evidence_texts = [c.context for c in candidates]
         verdict = None
@@ -368,11 +409,9 @@ class RAGPipeline:
                 detail = (f"judge: {verdict.reason}" if verdict.available
                           else f"judge unavailable and fail_closed: "
                                f"{verdict.error}")
-                resp.latency.total_rag_ms = (
-                    time.perf_counter() - started) * 1000
-                resp.latency.end_to_end_ms = resp.latency.total_rag_ms
                 return self._refuse(resp, RefusalReason.insufficient_evidence,
-                                    lang, detail)
+                                    lang, detail,
+                                    request=request, lat=lat, started=started)
             elif verdict.supporting_indices:
                 # Narrow the evidence to what the judge actually cited. The
                 # generator then sees only passages a reader confirmed carry
@@ -394,10 +433,12 @@ class RAGPipeline:
                 t.attempts = gen.attempts
         except GenerationError as exc:
             return self._refuse(resp, RefusalReason.internal_error, lang,
-                                f"generation failed: {exc}")
+                                f"generation failed: {exc}",
+                                request=request, lat=lat, started=started)
         except Exception as exc:
             return self._refuse(resp, RefusalReason.internal_error, lang,
-                                f"generation error: {exc}")
+                                f"generation error: {exc}",
+                                request=request, lat=lat, started=started)
 
         resp.generator = type(self.generator).__name__
         resp.persona = getattr(getattr(self.generator, "persona", None),
@@ -414,7 +455,8 @@ class RAGPipeline:
 
         if not gen.answer.strip():
             return self._refuse(resp, RefusalReason.insufficient_evidence,
-                                lang, "generator returned an empty answer")
+                                lang, "generator returned an empty answer",
+                                request=request, lat=lat, started=started)
 
         # SAME-LANGUAGE ENFORCEMENT. The persona is instructed to reply in the
         # user's language, but instruction is not verification. We detect the
@@ -437,7 +479,8 @@ class RAGPipeline:
         # it read them.
         if not gen.sufficient:
             return self._refuse(resp, RefusalReason.insufficient_evidence,
-                                lang, "generator reported sufficient=false")
+                                lang, "generator reported sufficient=false",
+                                request=request, lat=lat, started=started)
 
         # 10. grounding verification -----------------------------------------
         # Reuse the indexed evidence vectors rather than encoding them a third
@@ -462,10 +505,9 @@ class RAGPipeline:
         resp.grounding_score = grounding.semantic_score
 
         if self.cfg.enforce_grounding and not grounding.passed:
-            resp.latency.total_rag_ms = (time.perf_counter() - started) * 1000
-            resp.latency.end_to_end_ms = resp.latency.total_rag_ms
             return self._refuse(resp, RefusalReason.ungrounded_answer, lang,
-                                grounding.detail)
+                                grounding.detail,
+                                request=request, lat=lat, started=started)
 
         resp.answer = gen.answer
         resp.ok = True
@@ -479,6 +521,7 @@ class RAGPipeline:
                                                 voice=request.voice)
                 resp.audio_base64 = audio.audio_base64
             except Exception as exc:
+                resp.audio_unavailable_reason = str(exc)
                 resp.warnings.append(f"tts failed, returning text only: {exc}")
 
         resp.latency.end_to_end_ms = (time.perf_counter() - started) * 1000

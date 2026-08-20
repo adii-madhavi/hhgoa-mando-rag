@@ -36,7 +36,7 @@ from dataclasses import dataclass
 
 import httpx
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+                      stop_after_delay, wait_exponential)
 
 from app.schemas import SARVAM_TTS_LANG
 
@@ -87,11 +87,15 @@ def _truncate(text: str, limit: int = MAX_CHARS) -> str:
 class SarvamTTS:
     def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL,
                  timeout_s: float = 10.0, max_attempts: int = 3,
-                 speakers: dict | None = None):
+                 speakers: dict | None = None,
+                 retry_deadline_s: float = 15.0):
         self.api_key = api_key or os.environ.get("SARVAM_API_KEY")
         self.model = model
         self.timeout_s = timeout_s
         self.max_attempts = max_attempts
+        # HARD wall-clock cap across the whole retry loop -- TTS is
+        # presentation-only, so it must never be the reason a response hangs.
+        self.retry_deadline_s = retry_deadline_s
         self.speakers = {**DEFAULT_SPEAKERS, **(speakers or {})}
         self.available = bool(self.api_key)
         self._client = httpx.Client(timeout=httpx.Timeout(timeout_s)) \
@@ -118,7 +122,8 @@ class SarvamTTS:
         if not payload_text:
             raise TTSError("nothing to synthesize")
 
-        @retry(stop=stop_after_attempt(self.max_attempts),
+        @retry(stop=stop_after_attempt(self.max_attempts)
+                   | stop_after_delay(self.retry_deadline_s),
                wait=wait_exponential(multiplier=0.25, max=2.0),
                retry=retry_if_exception_type(TTSTransient), reraise=True)
         def _attempt() -> dict:

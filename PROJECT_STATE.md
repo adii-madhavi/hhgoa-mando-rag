@@ -1,9 +1,10 @@
 # MANDO — Project State
 
-**Status: Phase 3 COMPLETE + streaming (E18) + public API v1 layer.**
+**Status: Phase 3 COMPLETE + streaming (E18) + public API v1 layer + Phase 10 hardening (E20, partial).**
 **Generation P50 4.3s (E17); streaming TTFV P50 391ms gives ~10.7x perceived-latency win (E18).**
 **Public API contract live at /api/* (docs/api-v1.md) as a thin adapter -- internal pipeline untouched.**
-Last updated: 2026-08-19 · Deadline: 2026-08-22 23:59
+**Refusals now speak; hard deadlines added to every voice-path network call; voice-loop benchmark BLOCKED at n=7/120 by Sarvam account credit exhaustion -- see E20.**
+Last updated: 2026-08-20 · Deadline: 2026-08-22 23:59
 Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
 
 `PROJECT_STATE.md` and `TODO.md` are the source of truth. Update both after
@@ -26,7 +27,7 @@ of scope for backend work.
 ## One-line status
 
 A measured multilingual RAG system over MSMARCO-XI with grounded Mando
-generation live in English, Hindi and Marathi. **360 tests pass.**
+generation live in English, Hindi and Marathi. **370 tests pass.**
 Retrieval core **22-50 ms P50**; the answerability judge is off the critical
 path (**inline 0.0 ms**). LLM generation adds **~4.3 s P50** after the E17
 model switch — median fixed, but the **tail (P100 65 s)** is the open blocker
@@ -40,13 +41,35 @@ for a voice product.
 |---|---|---|
 | **Generation tail** | a reliable voice UX | Streaming (E18) gives TTFV P50 **391 ms** -- 10.7x better PERCEIVED latency -- but total generation is still ~4.2s P50, 9.4s P100. A 20s hard deadline is now enforced client-side (`LLMGenerator.deadline_s`); Marathi hit it 4/12 times in the benchmark, always cleanly (refusal, never a broken partial answer). |
 | **Pipeline-level streaming** | true mid-generation SSE through the guarded chain | Streaming exists at `LLMGenerator.generate_stream()` (fully guarded: citations validated, evidence-only). `RAGPipeline.run()` itself is still synchronous end-to-end -- deliberately deferred, larger change. Public API's SSE today streams the COMPLETED answer word-chunked, documented as such in docs/api-v1.md. |
-| **Voice-loop latency, at scale** | Phase 10 (100+ query benchmark) | Single-run figures only exist so far (E19, n=1/query): en e2e 15.0s, hi e2e 35.0s (TTS alone hit 30.9s once). No percentiles yet -- that is explicitly Phase 10, not this task. |
-| **Refusals produce no spoken audio** | voice UX completeness | Found during E19: `RAGPipeline` only reaches the TTS stage on the SUCCESS path; every `_refuse()` return exits before stage 11, so a refused voice query is answered with `resp.audio_base64=None` -- silence, even though `resp.answer` already holds correctly-localised refusal text. Not fixed (a real design decision, not a bug fix, and out of this task's explicit scope). Flagged for your review.
+| **Voice-loop latency, at scale** | production readiness | PARTIALLY MEASURED (E20, see below). The Sarvam account ran out of TTS credits (HTTP 402) 8 queries into the English pass, then rate-limited (429) for the rest of the run. Only **n=7 English** real voice-loop measurements exist; **Hindi and Marathi have ZERO benchmark data.** Not fabricated -- re-run needs Sarvam credits topped up. |
+| **Cache-hit-rate evidence for async judge** | production deployment shape (priority 4) | BLOCKED by the same credit exhaustion -- 0 of the planned repeat-query cache-hit checks completed. The deployment decision (below) is made on existing E15/E16 evidence only, not new data. |
 
 `LLM_API_KEY` is present and working. Judge latency is RESOLVED as a blocker:
 it runs async with a verdict cache, measured inline cost 0.0 ms.
 The Sarvam STT/TTS clients remain verified against published contracts but
 never exercised live.
+
+### Resolved this task (Phase 10)
+
+- **Refusals now produce spoken audio.** `RAGPipeline._refuse()` synthesizes
+  the same validated refusal text used for the text answer, whenever
+  `want_audio` and a TTS client are present -- see E20 below. Konkani still
+  correctly gets no substituted audio (never Marathi), with the reason now
+  surfaced explicitly via a new `audio_unavailable_reason` field. Tested in
+  `tests/test_voice.py::TestRefusalAudio` (5 tests).
+- **Hard client-side deadlines added** to every network call in the voice
+  path: `ChatClient.chat()` (shared by generation and the judge), `SarvamSTT`,
+  `SarvamTTS` now all cap their tenacity retry loop with `stop_after_delay`
+  in addition to `stop_after_attempt`, so a chronically-failing backend can no
+  longer hang a request for the full exponential-backoff schedule (this is
+  what produced the E15/E17 tails). Tested in `tests/test_generation.py`
+  and `tests/test_voice.py` by proving wall time stays bounded against an
+  always-failing mock backend, not by attempt count alone.
+- **Latency finalization for refusals is now uniform.** Previously several
+  refusal exits (`empty_input`, STT failures, prompt injection, retrieval
+  failure, generation failures, empty answer) left `total_rag_ms`/
+  `end_to_end_ms` at their zero default. All 13 refusal exits in
+  `RAGPipeline.run()` now finalize both consistently.
 
 ### Live-API findings (from the smoke test)
 

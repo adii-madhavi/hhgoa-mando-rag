@@ -116,6 +116,12 @@ class VoiceQueryResponse(TextQueryResponse):
                     "Always null today; Sarvam TTS streaming is not yet "
                     "integrated. Kept in the schema now so the frontend "
                     "contract does not need to change when it is.")
+    audio_unavailable_reason: str | None = Field(
+        default=None,
+        description="Set when audio_base64 is null despite audio being "
+                    "requested -- explains why (e.g. Konkani has no Sarvam "
+                    "TTS voice) so the frontend can show that reason instead "
+                    "of silently falling back to text.")
 
 
 class ConfigResponse(BaseModel):

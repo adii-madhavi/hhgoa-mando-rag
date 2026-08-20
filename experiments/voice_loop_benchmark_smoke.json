@@ -1,0 +1,373 @@
+{
+  "config": {
+    "n_per_language": 2,
+    "languages": [
+      "en",
+      "hi",
+      "mr"
+    ],
+    "repeat_every": 2,
+    "judge_mode": "async",
+    "model": "sarvam-105b-conversations",
+    "index": {
+      "model": "e5-small",
+      "hf_id": "intfloat/multilingual-e5-small",
+      "dim": 384,
+      "strategy": "fixed",
+      "langs": [
+        "en",
+        "hi",
+        "mr"
+      ],
+      "n_passages": 59961,
+      "n_chunks": 72411,
+      "mean_chunk_chars": 278.3,
+      "offline_seconds": {
+        "chunking": 0.2,
+        "embedding": 1865.1,
+        "qdrant_upsert": null
+      },
+      "note": "offline build; not counted in runtime latency"
+    }
+  },
+  "scope_statement": "This benchmark measures the FULL real voice loop: Sarvam STT -> RAGPipeline (retrieval, cosine guard, async judge, guarded LLM generation) -> Sarvam TTS, over N>=100 real queries. total_rag_ms excludes output TTS; end_to_end_ms includes it -- the two are never merged. NO claim is made that the full voice loop meets any 200ms target; the only figure ever measured against that target is the retrieval-only core (E11/E16), not reproduced here.",
+  "per_language": {
+    "en": {
+      "n_attempted": 2,
+      "n_succeeded": 2,
+      "refused": 1,
+      "refusal_rate": 0.5,
+      "grounded": 1,
+      "stt_failures": 0,
+      "tts_failures": 0,
+      "successful_complete_loops": 1,
+      "stt_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 460.7,
+        "p70": 460.7,
+        "p95": 460.7,
+        "p99": 460.7,
+        "p100": 460.7,
+        "mean": 363.4,
+        "min": 266.1
+      },
+      "retrieval_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 43.8,
+        "p70": 43.8,
+        "p95": 43.8,
+        "p99": 43.8,
+        "p100": 43.8,
+        "mean": 38.2,
+        "min": 32.7
+      },
+      "judge_inline_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 0.0,
+        "p70": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "p100": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 3783.1,
+        "p70": 3783.1,
+        "p95": 3783.1,
+        "p99": 3783.1,
+        "p100": 3783.1,
+        "mean": 1891.5,
+        "min": 0.0
+      },
+      "tts_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 13613.8,
+        "p70": 13613.8,
+        "p95": 13613.8,
+        "p99": 13613.8,
+        "p100": 13613.8,
+        "mean": 9775.7,
+        "min": 5937.6
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 4319.7,
+        "p70": 4319.7,
+        "p95": 4319.7,
+        "p99": 4319.7,
+        "p100": 4319.7,
+        "mean": 2315.0,
+        "min": 310.3
+      },
+      "end_to_end_voice_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 17933.5,
+        "p70": 17933.5,
+        "p95": 17933.5,
+        "p99": 17933.5,
+        "p100": 17933.5,
+        "mean": 12090.7,
+        "min": 6247.9
+      },
+      "cache_hit_repeats_attempted": 1,
+      "cache_hit_repeats_confirmed": 1,
+      "generation_ms_on_cache_hit": {
+        "measured": false,
+        "n": 0
+      },
+      "generation_ms_on_cache_miss": {
+        "measured": true,
+        "n": 2,
+        "p50": 3783.1,
+        "p70": 3783.1,
+        "p95": 3783.1,
+        "p99": 3783.1,
+        "p100": 3783.1,
+        "mean": 1891.5,
+        "min": 0.0
+      }
+    },
+    "hi": {
+      "n_attempted": 2,
+      "n_succeeded": 2,
+      "refused": 1,
+      "refusal_rate": 0.5,
+      "grounded": 1,
+      "stt_failures": 0,
+      "tts_failures": 0,
+      "successful_complete_loops": 1,
+      "stt_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 1282.3,
+        "p70": 1282.3,
+        "p95": 1282.3,
+        "p99": 1282.3,
+        "p100": 1282.3,
+        "mean": 854.2,
+        "min": 426.2
+      },
+      "retrieval_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 25.0,
+        "p70": 25.0,
+        "p95": 25.0,
+        "p99": 25.0,
+        "p100": 25.0,
+        "mean": 24.1,
+        "min": 23.2
+      },
+      "judge_inline_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 0.0,
+        "p70": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "p100": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 3004.9,
+        "p70": 3004.9,
+        "p95": 3004.9,
+        "p99": 3004.9,
+        "p100": 3004.9,
+        "mean": 1502.4,
+        "min": 0.0
+      },
+      "tts_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 7110.8,
+        "p70": 7110.8,
+        "p95": 7110.8,
+        "p99": 7110.8,
+        "p100": 7110.8,
+        "mean": 6711.0,
+        "min": 6311.2
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 3487.3,
+        "p70": 3487.3,
+        "p95": 3487.3,
+        "p99": 3487.3,
+        "p100": 3487.3,
+        "mean": 2396.5,
+        "min": 1305.7
+      },
+      "end_to_end_voice_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 10598.1,
+        "p70": 10598.1,
+        "p95": 10598.1,
+        "p99": 10598.1,
+        "p100": 10598.1,
+        "mean": 9107.5,
+        "min": 7617.0
+      },
+      "cache_hit_repeats_attempted": 1,
+      "cache_hit_repeats_confirmed": 0,
+      "generation_ms_on_cache_hit": {
+        "measured": false,
+        "n": 0
+      },
+      "generation_ms_on_cache_miss": {
+        "measured": true,
+        "n": 2,
+        "p50": 3004.9,
+        "p70": 3004.9,
+        "p95": 3004.9,
+        "p99": 3004.9,
+        "p100": 3004.9,
+        "mean": 1502.4,
+        "min": 0.0
+      }
+    },
+    "mr": {
+      "n_attempted": 2,
+      "n_succeeded": 2,
+      "refused": 1,
+      "refusal_rate": 0.5,
+      "grounded": 1,
+      "stt_failures": 0,
+      "tts_failures": 0,
+      "successful_complete_loops": 1,
+      "stt_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 858.9,
+        "p70": 858.9,
+        "p95": 858.9,
+        "p99": 858.9,
+        "p100": 858.9,
+        "mean": 618.1,
+        "min": 377.3
+      },
+      "retrieval_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 25.0,
+        "p70": 25.0,
+        "p95": 25.0,
+        "p99": 25.0,
+        "p100": 25.0,
+        "mean": 23.8,
+        "min": 22.6
+      },
+      "judge_inline_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 0.0,
+        "p70": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "p100": 0.0,
+        "mean": 0.0,
+        "min": 0.0
+      },
+      "generation_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 3020.2,
+        "p70": 3020.2,
+        "p95": 3020.2,
+        "p99": 3020.2,
+        "p100": 3020.2,
+        "mean": 1510.1,
+        "min": 0.0
+      },
+      "tts_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 5973.0,
+        "p70": 5973.0,
+        "p95": 5973.0,
+        "p99": 5973.0,
+        "p100": 5973.0,
+        "mean": 5397.8,
+        "min": 4822.6
+      },
+      "total_rag_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 3454.9,
+        "p70": 3454.9,
+        "p95": 3454.9,
+        "p99": 3454.9,
+        "p100": 3454.9,
+        "mean": 2168.3,
+        "min": 881.6
+      },
+      "end_to_end_voice_ms": {
+        "measured": true,
+        "n": 2,
+        "p50": 8277.5,
+        "p70": 8277.5,
+        "p95": 8277.5,
+        "p99": 8277.5,
+        "p100": 8277.5,
+        "mean": 7566.1,
+        "min": 6854.7
+      },
+      "cache_hit_repeats_attempted": 1,
+      "cache_hit_repeats_confirmed": 0,
+      "generation_ms_on_cache_hit": {
+        "measured": false,
+        "n": 0
+      },
+      "generation_ms_on_cache_miss": {
+        "measured": true,
+        "n": 2,
+        "p50": 3020.2,
+        "p70": 3020.2,
+        "p95": 3020.2,
+        "p99": 3020.2,
+        "p100": 3020.2,
+        "mean": 1510.1,
+        "min": 0.0
+      }
+    }
+  },
+  "judge_async_background_ms": {
+    "measured": true,
+    "n": 3,
+    "p50": 6285.7,
+    "p70": 6366.0,
+    "p95": 6366.0,
+    "p99": 6366.0,
+    "p100": 6366.0,
+    "mean": 5332.7,
+    "min": 3346.3
+  },
+  "judge_async_background_note": "background verification triggered on cache MISS; excluded from total_rag_ms / end_to_end_ms by construction, per E16",
+  "overall": {
+    "total_queries": 6,
+    "refused": 3,
+    "grounded": 3,
+    "stt_failures": 0,
+    "tts_failures": 0,
+    "successful_complete_loops": 3,
+    "cache_hit_repeats": 3,
+    "cache_hit_repeats_confirmed": 1,
+    "refusal_rate": 0.5,
+    "complete_loop_rate": 0.5,
+    "cache_hit_confirmation_rate": 0.333
+  }
+}

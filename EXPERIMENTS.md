@@ -1278,3 +1278,147 @@ clients fall back to `os.environ["SARVAM_API_KEY"]` by design, and that
 variable is now genuinely set in `.env`. Fixed with `monkeypatch.delenv` so
 those tests force the true "nothing configured anywhere" path independent of
 the host machine's `.env` state.
+
+---
+
+## E20 — Phase 10: production hardening + voice-loop benchmark at scale (PARTIAL, credits exhausted)
+
+**Commands:**
+`python evaluation/voice_loop_benchmark.py --n 40 --repeat-every 8`
+(and a `--n 2` smoke run first to validate the script before the real spend).
+
+**Scope:** the four production-readiness gaps E19 flagged for review --
+refusal audio, hard deadlines, judge deployment shape, and a real 100+-query
+voice-loop benchmark. All four were attempted; the fourth (and the cache-hit
+evidence needed for the third) is only PARTIALLY measured, honestly reported
+below rather than filled in with plausible-looking numbers.
+
+### 1. Refusals now speak (resolved)
+
+`RAGPipeline._refuse()` now synthesizes the same validated refusal text used
+for the text answer, whenever `want_audio` and a TTS client are present --
+mirroring the existing success-path TTS block exactly, so no new fabrication
+surface is introduced (it never synthesizes generated content, only the
+pre-validated refusal string). Konkani is unaffected by construction:
+`SARVAM_TTS_LANG` has no `"kok"` entry, so `SarvamTTS.synthesize()` already
+raised for it before this task, and that exception is now caught the same way
+any other TTS failure is, surfaced via a new `resp.audio_unavailable_reason`
+field (also added to the public `VoiceQueryResponse` schema and
+`docs/api-v1.md`) instead of a bare warning string. Never substitutes
+Marathi. 5 new tests in `tests/test_voice.py::TestRefusalAudio`.
+
+As a side effect of centralizing this, `total_rag_ms`/`end_to_end_ms` are now
+finalized uniformly across all 13 refusal exits in `run()` -- previously
+several (`empty_input`, STT failures, prompt injection, retrieval failure,
+generation failures, empty answer) left both at `0.0`, which would have
+under-reported refusal latency in this very benchmark had it not been fixed
+first.
+
+### 2. Hard client-side deadlines (resolved)
+
+`ChatClient.chat()` (shared by `LLMGenerator` and `AnswerabilityJudge`),
+`SarvamSTT._call()`, and `SarvamTTS.synthesize()` each gained a
+`retry_deadline_s` constructor parameter (defaults: LLM 20s, STT/TTS 15s each)
+combined into their existing tenacity `stop_after_attempt(...)` via
+`| stop_after_delay(retry_deadline_s)`. This directly targets the tails
+measured in E15 (judge P100 102.5s) and E17 (generation P100 65s): previously
+those retry loops were bounded only by attempt count under exponential
+backoff, which could run far longer than any deadline. No call sites in
+`app/pipeline.py` needed to change -- the deadline is internal to each client,
+so existing mocked tests (`FakeSTT`/`FakeTTS`/`FakeClient`) are unaffected.
+Graceful degradation is unchanged and preserved: STT/generation failures still
+refuse cleanly (never a broken partial answer), TTS failures still degrade to
+text-only, and the judge's existing fail-open/fail-closed policy is untouched
+-- a deadline hit is just one more `LLMTransient`/`STTError`/`TTSError` on the
+same existing exception paths.
+
+Verified functionally, not just by inspection: `tests/test_generation.py
+::TestChatClientHardDeadline` and `tests/test_voice.py`'s two
+`test_hard_deadline_bounds_a_chronically_failing_backend` tests each point a
+client at an always-failing mock backend with a deliberately tiny
+`retry_deadline_s` and `max_http_attempts=10`, then assert wall time stays
+under 5s -- proving the deadline (not attempt exhaustion) is what stopped the
+loop, since 10 attempts of `wait_exponential(multiplier=2, max=30)` alone
+would take well over a minute.
+
+### 3. Async judge deployment shape -- decision made on EXISTING evidence only
+
+**Decision: keep async + verdict cache in production**, exactly as already
+built. This decision is NOT based on new data -- the cache-hit-rate
+measurement planned for this benchmark (every 8th query repeated immediately)
+never ran, because the Sarvam account ran out of TTS credits before reaching
+any repeat (see §4). The decision rests entirely on E15 + E16, which remain
+valid and unchanged:
+
+- **Quality (E15):** cosine+judge (system C) balanced accuracy
+  0.7250/0.6414/0.6515 vs cosine-only (system A) 0.5700/0.5808/0.6061 across
+  en/hi/mr -- the judge earns its cost.
+- **Latency (E15/E16):** judge latency P50 909ms / P70 11.1s / P100 102.5s
+  measured in SYNC mode against a ~137ms retrieval budget -- synchronous
+  gating on every request is not viable. Async mode's measured INLINE cost is
+  0.0ms (E16); the real cost is paid entirely in the background and is
+  excluded from `total_rag_ms`/`end_to_end_ms` by construction.
+
+What is genuinely NOT measured: how often a live production query stream
+actually repeats within the cache's lifetime (`VerdictCache` has no
+observed real hit rate outside this project's own repeated-query test
+fixtures). This is an honest gap, not a fabricated number -- re-attempt this
+specifically (not the full 100+-query benchmark) once Sarvam credits are
+available; it needs far fewer calls than the full benchmark to answer.
+
+### 4. Voice-loop benchmark at scale -- PARTIAL, blocked by Sarvam account credits
+
+**Command:** `python evaluation/voice_loop_benchmark.py --n 40 --repeat-every 8`
+(120 distinct queries planned, 40/language across en/hi/mr, plus 15 immediate
+repeats for cache-hit evidence).
+
+**What actually happened:** the Sarvam account returned `HTTP 402
+insufficient_quota_error` ("No credits available") starting at the 8th English
+query, then `HTTP 429 rate_limit_exceeded_error` for effectively the rest of
+the run once credits hit zero. This is a genuine external resource limit, not
+a bug -- confirmed by the raw Sarvam error bodies logged in
+`experiments/voice_loop_benchmark.json` and the run log. **Only 7 English
+queries produced real, complete measurements. Hindi and Marathi produced
+ZERO** -- every one of their 40 attempted queries failed at the input-TTS
+step before ever reaching the pipeline. No hi/mr numbers are reported below,
+by design (this script refuses to synthesize a percentile from an empty
+list -- see `summarise()` returning `{"measured": False}`).
+
+**n=7 English results (informative only -- well under the n>=100 target this
+priority set out to hit; NOT claimed as a representative benchmark):**
+
+| stage | P50 | P70 | P95 | P100 |
+|---|---|---|---|---|
+| STT | 363.7 | 395.3 | 1,838.0 | 1,838.0 |
+| retrieval | 22.9 | 24.2 | 43.1 | 43.1 |
+| judge (inline) | 0.0 | 0.0 | 0.0 | 0.0 |
+| generation | 3,943.7 | 4,659.9 | 4,995.9 | 4,995.9 |
+| TTS (output) | 9,029.5 | 9,178.6 | 12,291.1 | 12,291.1 |
+| **TOTAL RAG (excl. output TTS)** | **5,081.3** | **5,289.1** | **5,804.4** | **5,804.4** |
+| **TOTAL VOICE E2E** | **14,110.8** | **14,467.7** | **16,412.0** | **16,412.0** |
+
+n=7: 3 refused (2 correctly via `insufficient_evidence`/`ungrounded_answer`
+guardrails, consistent with E19's earlier finding that the numeric grounding
+gate fires genuinely, not spuriously), 4 successful complete loops (refused=
+False, grounded=True, valid audio produced). One additional judge schema
+hiccup was observed and logged (`sufficient: Field required`) -- it degraded
+correctly via the existing fail-open path rather than crashing or hanging,
+which is itself informal evidence the E15-era schema-retry logic still works
+under a real repeated-query load, distinct from the cache-hit question in §3.
+
+**As with every other latency figure in this project: no claim is made that
+the full voice loop meets the 200ms target.** total_rag_ms and
+end_to_end_voice_ms are kept as separate columns above, never merged.
+
+**Remaining blocker, explicitly:** re-running this benchmark to reach the
+n>=100 target and collect real hi/mr data and cache-hit evidence requires
+topping up the Sarvam account's TTS credits. The script
+(`evaluation/voice_loop_benchmark.py`) is complete, smoke-tested, and ready to
+re-run as-is (`python evaluation/voice_loop_benchmark.py --n 40
+--repeat-every 8`) the moment credits are available -- no code changes
+needed.
+
+### Test suite
+
+370/370 passing (360 baseline + 5 refusal-audio tests + 4 hard-deadline tests
++ 1 public-API contract test for the new `audio_unavailable_reason` field).
