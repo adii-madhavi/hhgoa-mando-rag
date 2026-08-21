@@ -29,7 +29,6 @@ COPY frontend/ frontend/
 
 # data/ (index + processed corpus) is mounted, not copied: it is build output,
 # not source, and baking a multi-GB index into the image is wasteful.
-VOLUME ["/app/data"]
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
