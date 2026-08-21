@@ -144,7 +144,9 @@
     .app-root {
       display: flex;
       width: 100%;
+      max-width: 100vw;
       min-height: 100vh;
+      overflow-x: clip;
       position: relative;
     }
 
@@ -158,7 +160,8 @@
       flex-shrink: 0;
       position: sticky;
       top: 0;
-      height: 100vh;
+      height: 100dvh;
+      min-height: 100vh;
       z-index: 40;
       flex-direction: column;
     }
@@ -166,6 +169,7 @@
     /* Main Viewport Container */
     .main-viewport {
       flex: 1;
+      width: 100%;
       min-width: 0;
       display: flex;
       flex-direction: column;
@@ -318,9 +322,10 @@
        ========================================================================== */
     .views-container {
       width: 100%;
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
       padding: 12px 14px;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -512,6 +517,11 @@
       -webkit-overflow-scrolling: touch;
     }
     .prompt-chips-scroll::-webkit-scrollbar { display: none; }
+    .followup-box .prompt-chips-scroll {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
+    .followup-box .prompt-chip { white-space: normal; }
     .prompt-chip {
       background: var(--bg-input);
       border: 1px solid var(--bg-card-border);
@@ -571,6 +581,7 @@
     }
 
     .explore-card {
+      width: 100%;
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
       border-radius: var(--radius-md);
@@ -584,6 +595,9 @@
       overflow: hidden;
       min-height: 105px;
       justify-content: space-between;
+      color: inherit;
+      font: inherit;
+      text-align: left;
     }
     .explore-card:hover, .explore-card:active {
       border-color: var(--gold-primary);
@@ -615,6 +629,37 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .explore-detail-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--gold-primary);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      gap: 10px;
+      scroll-margin-top: calc(var(--header-height) + 16px);
+    }
+    .explore-detail-card.open { display: grid; }
+    .explore-detail-title {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      color: var(--text-main);
+    }
+    .explore-detail-text {
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 72ch;
+    }
+    .explore-detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .home-mando-companion {
+      width: 100%;
+      max-width: 860px;
+      align-self: center;
     }
     .featured-badge {
       display: inline-flex;
@@ -1484,8 +1529,14 @@
        15. DESKTOP ADAPTATION (>= 1024px)
        ========================================================================== */
     @media (min-width: 1024px) {
+      .app-root {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        align-items: stretch;
+      }
       .desktop-sidebar {
         display: flex;
+        width: auto;
       }
       .mobile-bottom-nav {
         display: none;
@@ -1498,6 +1549,8 @@
       }
       .main-viewport {
         padding-bottom: 40px;
+        width: 100%;
+        max-width: none;
       }
       .views-container {
         padding: 20px 28px;
@@ -1645,7 +1698,7 @@
           </div>
 
           <!-- Mando Interactive Spotlight Card -->
-          <div class="mando-mobile-spotlight" id="mando-home-card">
+          <div class="mando-mobile-spotlight home-mando-companion" id="mando-home-card">
             <div class="mando-spotlight-head">
               <div class="mando-avatar-touch" onclick="toggleMandoSpeech()" title="Tap to listen to Mando"
                    role="button" tabindex="0" aria-label="Listen to Mando's answer"
@@ -1713,11 +1766,11 @@
 
             <!-- Quick Suggestions -->
             <div class="prompt-chips-scroll">
-              <button class="prompt-chip" onclick="askQuestion('Tell me about São João Festival')">🎉 São João</button>
-              <button class="prompt-chip" onclick="askQuestion('What are the main festivals in Goa?')">🎭 Goa Festivals</button>
-              <button class="prompt-chip" onclick="askQuestion('Explain traditional Goan fish curry and Bebinca')">🍛 Goan Food</button>
-              <button class="prompt-chip" onclick="askQuestion('History of Old Goa churches and Basilica')">⛪ Old Goa History</button>
-              <button class="prompt-chip" onclick="askQuestion('What is Mando music and Ghumot?')">🎻 Mando Music</button>
+              <button class="prompt-chip" onclick="askQuestion('How is São João celebrated in Goa?')">🎉 São João</button>
+              <button class="prompt-chip" onclick="askQuestion('What is Shigmo?')">🎭 Shigmo</button>
+              <button class="prompt-chip" onclick="askQuestion('What is Xit Kodi?')">🍛 Xit Kodi</button>
+              <button class="prompt-chip" onclick="askQuestion('Tell me about the Basilica of Bom Jesus in Old Goa')">⛪ Old Goa</button>
+              <button class="prompt-chip" onclick="askQuestion('What is Mando music?')">🎻 Mando Music</button>
             </div>
           </div>
 
@@ -1729,67 +1782,67 @@
             </div>
             
             <div class="explore-grid-2col">
-              <div class="explore-card" onclick="askQuestion('Tell me about the best serene beaches in South Goa like Palolem and Agonda')">
+              <div class="explore-card" onclick="askQuestion('Tell me about Palolem Beach')">
                 <div class="explore-card-icon">🌴</div>
                 <div>
                   <div class="explore-card-title">Beaches</div>
-                  <div class="explore-card-desc">Palolem, Agonda & coastline</div>
+                  <div class="explore-card-desc">Palolem and Goa's coast</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('Tell me about Old Goa churches, Basilica of Bom Jesus and 1961 Liberation')">
+              <div class="explore-card" onclick="askQuestion('How did Goa become part of India in 1961?')">
                 <div class="explore-card-icon">⛪</div>
                 <div>
                   <div class="explore-card-title">History</div>
-                  <div class="explore-card-desc">450+ yrs & UNESCO Sites</div>
+                  <div class="explore-card-desc">Liberation and statehood</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('Tell me about São João, Shigmo and Carnival festivals in Goa')">
+              <div class="explore-card" onclick="askQuestion('What is Shigmo?')">
                 <div class="explore-card-icon">🎭</div>
                 <div>
                   <div class="explore-card-title">Festivals</div>
-                  <div class="explore-card-desc">São João, Shigmo, Carnival</div>
+                  <div class="explore-card-desc">Processions, dance and music</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('Explain traditional Goan fish curry, Bebinca dessert and spices')">
+              <div class="explore-card" onclick="askQuestion('What is Xit Kodi?')">
                 <div class="explore-card-icon">🍛</div>
                 <div>
                   <div class="explore-card-title">Food</div>
-                  <div class="explore-card-desc">Xitt Kodi & Bebinca</div>
+                  <div class="explore-card-desc">Goan fish curry and rice</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('Tell me about Mando music, Ghumot, and Goan folk culture')">
+              <div class="explore-card" onclick="askQuestion('What is Mando music?')">
                 <div class="explore-card-icon">🎻</div>
                 <div>
                   <div class="explore-card-title">Culture</div>
-                  <div class="explore-card-desc">Mando songs & folklore</div>
+                  <div class="explore-card-desc">Goan song tradition</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('What are the top waterfalls like Dudhsagar and spice plantations in Goa?')">
+              <div class="explore-card" onclick="askQuestion('Tell me about Dudhsagar Falls')">
                 <div class="explore-card-icon">🌿</div>
                 <div>
                   <div class="explore-card-title">Nature</div>
-                  <div class="explore-card-desc">Dudhsagar & Spices</div>
+                  <div class="explore-card-desc">Goa's famous waterfall</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('Tell me about Indo-Portuguese houses, balcãos and oyster shell windows')">
+              <div class="explore-card" onclick="askQuestion('What is distinctive about Goan architecture?')">
                 <div class="explore-card-icon">🏛️</div>
                 <div>
                   <div class="explore-card-title">Architecture</div>
-                  <div class="explore-card-desc">Balcãos & Azulejos</div>
+                  <div class="explore-card-desc">Local and Portuguese influences</div>
                 </div>
               </div>
 
-              <div class="explore-card" onclick="askQuestion('Tell me about Konkani language history, Romi script and Devanagari')">
+              <div class="explore-card" onclick="askQuestion('What is the official language of Goa?')">
                 <div class="explore-card-icon">🪷</div>
                 <div>
                   <div class="explore-card-title">Konkani</div>
-                  <div class="explore-card-desc">Official tongue of Goa</div>
+                  <div class="explore-card-desc">Goa's official language</div>
                 </div>
               </div>
             </div>
@@ -1799,16 +1852,15 @@
           <article class="featured-story-card">
             <div class="featured-badge">🎉 Cultural Spotlight</div>
             <h2 class="featured-title">Feast of São João (St. John)</h2>
-            <p class="featured-text">Celebrated with great joy every June as monsoons arrive. Goans wear floral crowns (kopels), sing folk Dulpods, and leap joyfully into wells.</p>
+            <p class="featured-text">São João is a monsoon festival celebrated in Goa with lively community festivities and the tradition of jumping into wells.</p>
             
             <div class="featured-highlights-row">
-              <div class="featured-h-item">🌿 Floral Kopels</div>
-              <div class="featured-h-item">⛵ Siolim Boat Parade</div>
-              <div class="featured-h-item">🎶 Ghumot Folk Beats</div>
-              <div class="featured-h-item">🍛 Ochem Feasts</div>
+              <div class="featured-h-item">🌧️ Monsoon Celebration</div>
+              <div class="featured-h-item">🤝 Community Festivities</div>
+              <div class="featured-h-item">💦 Traditional Well-jumping</div>
             </div>
 
-            <button class="stage-pill-btn" onclick="askQuestion('Tell me everything about São João celebrations, kopels and Siolim boat parade')" style="align-self:flex-start; margin-top:4px;">
+            <button class="stage-pill-btn" onclick="askQuestion('How is São João celebrated in Goa?')" style="align-self:flex-start; margin-top:4px;">
               <span>Ask Mando about São João →</span>
             </button>
           </article>
@@ -1844,70 +1896,79 @@
           <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Browse curated cultural categories, landmarks, and traditions.</p>
 
           <div class="explore-grid-2col">
-            <div class="explore-card" onclick="askQuestion('What are the top must-visit cultural places in Goa?')">
-              <div class="explore-card-icon">🗺️</div>
-              <div>
-                <div class="explore-card-title">Top Heritage Trail</div>
-                <div class="explore-card-desc">Must-visit historical sites</div>
-              </div>
-            </div>
-
-            <div class="explore-card" onclick="askQuestion('Tell me about Basilica of Bom Jesus and St Francis Xavier')">
+            <button type="button" class="explore-card" onclick="openExploreTopic('basilica')">
               <div class="explore-card-icon">⛪</div>
               <div>
-                <div class="explore-card-title">Bom Jesus</div>
-                <div class="explore-card-desc">UNESCO Basilica in Old Goa</div>
+                <div class="explore-card-title">Basilica of Bom Jesus</div>
+                <div class="explore-card-desc">Old Goa's celebrated basilica</div>
               </div>
-            </div>
+            </button>
 
-            <div class="explore-card" onclick="askQuestion('Explain traditional Goan Fish Curry Thali Xitt Kodi')">
+            <button type="button" class="explore-card" onclick="openExploreTopic('xit-kodi')">
               <div class="explore-card-icon">🍛</div>
               <div>
-                <div class="explore-card-title">Xitt Kodi Thali</div>
-                <div class="explore-card-desc">Coconut curry, kokum & fish</div>
+                <div class="explore-card-title">Xit Kodi</div>
+                <div class="explore-card-desc">Goan fish curry and rice</div>
               </div>
-            </div>
+            </button>
 
-            <div class="explore-card" onclick="askQuestion('Tell me about Palolem and Agonda serene beaches')">
+            <button type="button" class="explore-card" onclick="openExploreTopic('palolem')">
               <div class="explore-card-icon">🏖️</div>
               <div>
-                <div class="explore-card-title">South Coast</div>
-                <div class="explore-card-desc">Palolem, Agonda & Colva</div>
+                <div class="explore-card-title">Palolem Beach</div>
+                <div class="explore-card-desc">A crescent-shaped South Goa beach</div>
               </div>
-            </div>
+            </button>
 
-            <div class="explore-card" onclick="askQuestion('Tell me about Kadambas and ancient Hindu dynasties of Goa')">
-              <div class="explore-card-icon">👑</div>
+            <button type="button" class="explore-card" onclick="openExploreTopic('old-goa')">
+              <div class="explore-card-icon">🏛️</div>
               <div>
-                <div class="explore-card-title">Ancient Dynasties</div>
-                <div class="explore-card-desc">Kadambas & Satavahanas</div>
+                <div class="explore-card-title">Old Goa</div>
+                <div class="explore-card-desc">Historic churches and monuments</div>
               </div>
-            </div>
+            </button>
 
-            <div class="explore-card" onclick="askQuestion('Explain Shigmo spring festival and Ghode Modni dance')">
+            <button type="button" class="explore-card" onclick="openExploreTopic('shigmo')">
               <div class="explore-card-icon">🎭</div>
               <div>
-                <div class="explore-card-title">Shigmotsav</div>
-                <div class="explore-card-desc">Spring festival of colors</div>
+                <div class="explore-card-title">Shigmo</div>
+                <div class="explore-card-desc">Processions, folk dance and music</div>
               </div>
-            </div>
+            </button>
 
-            <div class="explore-card" onclick="askQuestion('Tell me about Dudhsagar waterfalls and Bhagwan Mahavir sanctuary')">
+            <button type="button" class="explore-card" onclick="openExploreTopic('dudhsagar')">
               <div class="explore-card-icon">🌊</div>
               <div>
                 <div class="explore-card-title">Dudhsagar Falls</div>
-                <div class="explore-card-desc">Sea of milk cascade</div>
+                <div class="explore-card-desc">Goa's dramatic tiered waterfall</div>
               </div>
-            </div>
+            </button>
 
-            <div class="explore-card" onclick="askQuestion('Tell me about Sacred Temples of Ponda and Deepastambhas')">
+            <button type="button" class="explore-card" onclick="openExploreTopic('ponda-temples')">
               <div class="explore-card-icon">🪔</div>
               <div>
                 <div class="explore-card-title">Ponda Temples</div>
-                <div class="explore-card-desc">Mangueshi & Shantadurga</div>
+                <div class="explore-card-desc">Goa's important temple region</div>
               </div>
-            </div>
+            </button>
+
+            <button type="button" class="explore-card" onclick="openExploreTopic('architecture')">
+              <div class="explore-card-icon">🏠</div>
+              <div>
+                <div class="explore-card-title">Goan Architecture</div>
+                <div class="explore-card-desc">Local and Portuguese influences</div>
+              </div>
+            </button>
           </div>
+
+          <article id="explore-detail" class="explore-detail-card" tabindex="-1" aria-live="polite">
+            <div class="featured-badge">Curated Goa Knowledge</div>
+            <h2 class="explore-detail-title" id="explore-detail-title"></h2>
+            <p class="explore-detail-text" id="explore-detail-text"></p>
+            <div class="explore-detail-actions">
+              <button type="button" class="stage-pill-btn" onclick="askCurrentExploreTopic()">Ask Mando about this topic →</button>
+            </div>
+          </article>
         </section>
 
         <!-- ================= PAGE 3: CONVERSATION (MANDO CHAT) ================= -->
@@ -2006,11 +2067,7 @@
             <!-- Follow-up Suggestions -->
             <div class="followup-box">
               <div class="followup-title">Suggested Follow-ups</div>
-              <div class="prompt-chips-scroll">
-                <button class="prompt-chip" onclick="askQuestion('Tell me more about São João floral kopels and traditions')">🌺 About São João Kopels</button>
-                <button class="prompt-chip" onclick="askQuestion('What traditional foods are cooked during Goan festivals?')">🍛 Festival Foods</button>
-                <button class="prompt-chip" onclick="askQuestion('Where are the best Shigmo parades held in Goa?')">📍 Best Shigmo Locations</button>
-              </div>
+              <div class="prompt-chips-scroll" id="followup-chips"></div>
             </div>
           </div>
 
@@ -2025,56 +2082,34 @@
             
             <div class="timeline-v-node">
               <div class="timeline-v-dot"></div>
-              <div class="timeline-v-card" onclick="askQuestion('Tell me about ancient Goa pre-history, Usgalimal petroglyphs and indigenous roots')">
-                <div class="era-v-head">
-                  <span class="era-v-name">Pre-History</span>
-                  <span class="era-v-years">Before 300 BC</span>
-                </div>
-                <p class="era-v-text">Indigenous hunter-gatherer communities along Kushavati river; Usgalimal rock engravings and early Konkan settlements.</p>
-              </div>
-            </div>
-
-            <div class="timeline-v-node">
-              <div class="timeline-v-dot"></div>
-              <div class="timeline-v-card" onclick="askQuestion('Tell me about Kadambas, Satavahanas, and ancient Hindu dynasties of Goa')">
-                <div class="era-v-head">
-                  <span class="era-v-name">Hindu Dynasties</span>
-                  <span class="era-v-years">300 BC – 1312</span>
-                </div>
-                <p class="era-v-text">Golden age under Bhojas, Satavahanas, and Kadamba rulers of Chandor and Gopakapattana (Goa Velha).</p>
-              </div>
-            </div>
-
-            <div class="timeline-v-node">
-              <div class="timeline-v-dot"></div>
-              <div class="timeline-v-card" onclick="askQuestion('Tell me about 451 years of Portuguese colonial era in Goa, Old Goa churches and culture')">
+              <div class="timeline-v-card" onclick="askQuestion('What influence did Portuguese rule leave in Goa?')">
                 <div class="era-v-head">
                   <span class="era-v-name">Portuguese Era</span>
                   <span class="era-v-years">1510 – 1961</span>
                 </div>
-                <p class="era-v-text">Afonso de Albuquerque conquers Goa; Old Goa becomes 'Rome of the East', birth of Indo-Portuguese architecture and Mando music.</p>
+                <p class="era-v-text">Portuguese rule began with the capture of Goa in 1510 and left a visible legacy in churches, houses and urban form.</p>
               </div>
             </div>
 
             <div class="timeline-v-node">
               <div class="timeline-v-dot"></div>
-              <div class="timeline-v-card" onclick="askQuestion('Tell me about Ram Manohar Lohia, Operation Vijay and 1961 Goa Liberation')">
+              <div class="timeline-v-card" onclick="askQuestion('How did Goa become part of India in 1961?')">
                 <div class="era-v-head">
-                  <span class="era-v-name">Freedom Struggle</span>
-                  <span class="era-v-years">1946 – 1961</span>
+                  <span class="era-v-name">Goa Liberation</span>
+                  <span class="era-v-years">19 December 1961</span>
                 </div>
-                <p class="era-v-text">Civil disobedience launched by Dr. Lohia in Margao; Indian Army executes 'Operation Vijay' on Dec 19, 1961.</p>
+                <p class="era-v-text">Goa became part of the Indian Union on 19 December 1961 following Operation Vijay.</p>
               </div>
             </div>
 
             <div class="timeline-v-node">
               <div class="timeline-v-dot"></div>
-              <div class="timeline-v-card" onclick="askQuestion('Tell me about Goa statehood in 1987, Konkani language movement and modern Goa')">
+              <div class="timeline-v-card" onclick="askQuestion('When did Goa become a state?')">
                 <div class="era-v-head">
-                  <span class="era-v-name">Modern Goa</span>
-                  <span class="era-v-years">1961 – Present</span>
+                  <span class="era-v-name">Goa Statehood</span>
+                  <span class="era-v-years">30 May 1987</span>
                 </div>
-                <p class="era-v-text">Historical Opinion Poll 1967 retains Goan identity; Konkani becomes official language, Goa attains full statehood in 1987.</p>
+                <p class="era-v-text">Goa became India's twenty-fifth state on 30 May 1987.</p>
               </div>
             </div>
 
@@ -2087,8 +2122,8 @@
           <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Your bookmarked heritage stories and answers.</p>
 
           <div class="saved-list" id="saved-list-container">
-            <div class="saved-item-card" onclick="askQuestion('What are the main festivals in Goa?')">
-              <div class="saved-item-title">Festivals of Goa (São João, Shigmo, Carnival)</div>
+            <div class="saved-item-card" onclick="askQuestion('What is Shigmo?')">
+              <div class="saved-item-title">Shigmo in Goa</div>
               <div class="saved-item-snippet">Goa is renowned for its rich cultural celebrations that blend indigenous Konkan traditions with Portuguese heritage...</div>
             </div>
             <div class="saved-item-card" onclick="askQuestion('Tell me about São João Festival')">
@@ -2380,6 +2415,112 @@
     // backend rejects them with 422 -- so they were replaced with the
     // languages the API actually accepts.
     let activeLanguage = 'auto';
+    let currentExploreQuery = '';
+
+    const EXPLORE_TOPICS = {
+      basilica: {
+        title: 'Basilica of Bom Jesus',
+        text: 'The Basilica of Bom Jesus is one of the churches in the UNESCO-listed Churches and Convents of Goa at Old Goa.',
+        query: 'Tell me about the Basilica of Bom Jesus in Old Goa'
+      },
+      'xit-kodi': {
+        title: 'Xit Kodi',
+        text: 'Rice with fish curry, commonly called xit kodi, is described as a staple Goan meal.',
+        query: 'What is Xit Kodi?'
+      },
+      palolem: {
+        title: 'Palolem Beach',
+        text: 'Palolem is a crescent-shaped beach in Canacona in South Goa.',
+        query: 'Tell me about Palolem Beach'
+      },
+      'old-goa': {
+        title: 'Old Goa',
+        text: 'Old Goa was the capital under Portuguese rule until the capital shifted to Panjim in 1843.',
+        query: 'Tell me about Old Goa'
+      },
+      shigmo: {
+        title: 'Shigmo',
+        text: 'Shigmo is a major Goan spring festival featuring processions, folk dance and music.',
+        query: 'What is Shigmo?'
+      },
+      dudhsagar: {
+        title: 'Dudhsagar Falls',
+        text: 'Dudhsagar Falls is a four-tiered waterfall on the Mandovi River in the Bhagwan Mahavir wildlife area.',
+        query: 'Tell me about Dudhsagar Falls'
+      },
+      'ponda-temples': {
+        title: 'Ponda Temples',
+        text: 'Goa has important temple traditions, with well-known temples concentrated around Ponda and elsewhere in the state.',
+        query: 'Tell me about the temples of Ponda'
+      },
+      architecture: {
+        title: 'Goan Architecture',
+        text: 'Goan architecture shows Indian and Portuguese influences in religious buildings and domestic houses.',
+        query: 'What is distinctive about Goan architecture?'
+      }
+    };
+
+    function openExploreTopic(topicKey) {
+      const topic = EXPLORE_TOPICS[topicKey];
+      const detail = document.getElementById('explore-detail');
+      if (!topic || !detail) return;
+
+      currentExploreQuery = topic.query;
+      document.getElementById('explore-detail-title').textContent = topic.title;
+      document.getElementById('explore-detail-text').textContent = topic.text;
+      detail.classList.add('open');
+      detail.focus({ preventScroll: true });
+      detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function askCurrentExploreTopic() {
+      if (currentExploreQuery) askQuestion(currentExploreQuery);
+    }
+
+    function getSupportedFollowUps(query) {
+      const normalized = String(query || '').toLowerCase();
+      if (normalized.includes('são joão') || normalized.includes('sao joao')) {
+        return [
+          'How is Sao Joao celebrated in Goa?',
+          'What is Shigmo?',
+          'What is Goa Carnival?'
+        ];
+      }
+      if (normalized.includes('shigmo') || normalized.includes('festival') || normalized.includes('carnival')) {
+        return [
+          'What is Shigmo?',
+          'How is Sao Joao celebrated in Goa?',
+          'What is Goa Carnival?'
+        ];
+      }
+      if (normalized.includes('food') || normalized.includes('curry') || normalized.includes('xit') ||
+          normalized.includes('bebinca') || normalized.includes('xacuti') || normalized.includes('vindaloo')) {
+        return [
+          'What is Xit Kodi?',
+          'What is Bebinca?',
+          'What is Goan Xacuti?'
+        ];
+      }
+      return [
+        'Tell me about Old Goa',
+        'Tell me about Dudhsagar Falls',
+        'Tell me about Palolem Beach'
+      ];
+    }
+
+    function renderSupportedFollowUps(query) {
+      const container = document.getElementById('followup-chips');
+      if (!container) return;
+      container.replaceChildren();
+      getSupportedFollowUps(query).forEach((followUpQuery) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'prompt-chip';
+        button.textContent = followUpQuery;
+        button.addEventListener('click', () => askQuestion(followUpQuery));
+        container.appendChild(button);
+      });
+    }
 
     function selectAnswerMode(mode) {
       if (mode !== 'fast' && mode !== 'detailed') return;
@@ -2512,6 +2653,7 @@
         warning.textContent = '';
       }
       renderPerformance(data);
+      renderSupportedFollowUps(query);
 
       setMandoState(refused ? 'idle' : 'success');
       const safeQuery = escapeHtml(query);
