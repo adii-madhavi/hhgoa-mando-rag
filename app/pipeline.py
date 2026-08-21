@@ -54,7 +54,7 @@ from app.guardrails.input import check_input
 from app.guardrails.relevance import assess_evidence
 from app.language import detect_language, resolve_language
 from app.schemas import (Evidence, Lang, Latency, RAGRequest, RAGResponse,
-                         RefusalReason, Stage, Timer)
+                         AnswerOrigin, RefusalReason, Stage, Timer)
 
 log = logging.getLogger("mando")
 
@@ -72,7 +72,8 @@ class RAGPipeline:
                  stt=None, tts=None, generator=None, dense_matrix=None,
                  judge=None, judge_mode: str = "async",
                  verdict_cache=None, index_version: str = "",
-                 judge_workers: int = 2):
+                 judge_workers: int = 2, goa_knowledge=None,
+                 external_generator=None):
         self.cfg = config
         self.retriever = retriever
         # Cached corpus embeddings, so reranking and grounding reuse what the
@@ -83,6 +84,8 @@ class RAGPipeline:
         self.reranker = reranker
         self.stt = stt
         self.tts = tts
+        self.external_generator = external_generator
+        self.goa_knowledge = goa_knowledge
         # Answerability judge. None disables the stage entirely, which is the
         # configuration every pre-Phase-1 measurement used.
         #
@@ -131,6 +134,8 @@ class RAGPipeline:
         resp.ok = True          # a refusal is a SUCCESSFUL, correct outcome
         resp.refused = True
         resp.refusal_reason = reason
+        resp.answer_origin = None
+        resp.external_verified = None
         resp.answer, localised = refusal_text_with_locale(lang, reason.value)
         if not localised:
             # Konkani has no localised refusal copy; the user is getting
@@ -196,6 +201,48 @@ class RAGPipeline:
             return query
         return f"{history[-1].query} — {query}"
 
+    def _external_or_refuse(self, resp: RAGResponse, query: str, lang: str,
+                            request: RAGRequest, lat: Latency,
+                            started: float, detail: str) -> RAGResponse:
+        if self.external_generator is None:
+            return self._refuse(resp, RefusalReason.insufficient_evidence,
+                                lang, detail, request=request, lat=lat,
+                                started=started)
+        try:
+            with Timer(lat, Stage.generation) as timer:
+                generated = self.external_generator.generate(
+                    query, lang, answer_mode=request.answer_mode.value)
+                timer.attempts = generated.attempts
+        except Exception as exc:
+            return self._refuse(
+                resp, RefusalReason.insufficient_evidence, lang,
+                f"{detail}; external provider failed: {exc}",
+                request=request, lat=lat, started=started)
+
+        resp.answer = generated.answer.strip()
+        if not resp.answer:
+            return self._refuse(resp, RefusalReason.insufficient_evidence,
+                                lang, f"{detail}; external answer was empty",
+                                request=request, lat=lat, started=started)
+        resp.ok = True
+        resp.grounded = False
+        resp.answer_origin = AnswerOrigin.external
+        resp.external_verified = False
+        resp.evidence = []
+        resp.sources_used = []
+        resp.latency.total_rag_ms = (time.perf_counter() - started) * 1000
+        if request.want_audio and self.tts is not None:
+            try:
+                with Timer(lat, Stage.tts):
+                    audio = self.tts.synthesize(resp.answer, lang,
+                                                voice=request.voice)
+                resp.audio_base64 = audio.audio_base64
+            except Exception as exc:
+                resp.audio_unavailable_reason = str(exc)
+                resp.warnings.append(f"tts failed, returning text only: {exc}")
+        resp.latency.end_to_end_ms = (time.perf_counter() - started) * 1000
+        return resp
+
     def _judge_in_background(self, key, query, evidence_texts, lang) -> None:
         """
         Fire one background judge call, then store the verdict.
@@ -236,7 +283,7 @@ class RAGPipeline:
         started = time.perf_counter()
         lat = Latency()
         resp = RAGResponse(request_id=request.request_id, ok=False,
-                           latency=lat)
+                           latency=lat, answer_mode=request.answer_mode)
         log.info("[%s] start lang=%s audio=%s text=%s",
                  request.request_id, request.language,
                  bool(request.audio_base64), bool(request.text))
@@ -329,22 +376,40 @@ class RAGPipeline:
             resp.warnings.append(f"rerank failed, using fused order: {exc}")
             candidates = candidates[:self.cfg.top_k]
 
-        # 8. evidence sufficiency -------------------------------------------
+        # 8. evidence sufficiency. MSMARCO-XI and product knowledge remain
+        # separate indexes and are classified before generation.
+        corpus_candidates = candidates
         with Timer(lat, Stage.evidence_check):
-            decision = assess_evidence(candidates, self.evidence_thresholds)
+            decision = assess_evidence(corpus_candidates,
+                                       self.evidence_thresholds)
+            goa_result = (self.goa_knowledge.retrieve(
+                query, query_vector=timing.query_vector,
+                top_k=self.cfg.top_k) if self.goa_knowledge is not None
+                else None)
+
+        if goa_result and goa_result.sufficient and (
+                not decision.sufficient or goa_result.strong_match):
+            candidates = (goa_result.candidates[:1]
+                          if goa_result.strong_match
+                          else goa_result.candidates)
+            resp.answer_origin = AnswerOrigin.goa_knowledge
+        elif decision.sufficient:
+            candidates = corpus_candidates
+            resp.answer_origin = AnswerOrigin.corpus
+        else:
+            return self._external_or_refuse(
+                resp, query, lang, request, lat, started, decision.detail)
+
         resp.retrieval_confidence = decision.confidence
         resp.evidence = [
             Evidence(doc_id=c.doc_id, text=c.text, context=c.context,
                      lang=c.lang, query_id=c.query_id,
                      passage_index=c.passage_index,
                      dense_score=c.dense_score, bm25_score=c.bm25_score,
-                     fused_score=c.fused_score, rerank_score=c.rerank_score)
+                     fused_score=c.fused_score, rerank_score=c.rerank_score,
+                     source_name=c.meta.get("source_name"),
+                     source_url=c.meta.get("source_url"))
             for c in candidates]
-
-        if not decision.sufficient:
-            return self._refuse(resp, RefusalReason.insufficient_evidence,
-                                lang, decision.detail,
-                                request=request, lat=lat, started=started)
 
         evidence_texts = [c.context for c in candidates]
         verdict = None
@@ -386,8 +451,12 @@ class RAGPipeline:
                     self.verdict_cache.put(key, verdict)
 
             elif verdict is None:
-                self._judge_in_background(key, query, evidence_texts, lang)
-                resp.judge_async_dispatched = True
+                # A cache miss never gates the current response. Detailed
+                # mode may warm the existing answerability cache in the
+                # background; fast mode avoids that optional paid call.
+                if request.answer_mode.value == "detailed":
+                    self._judge_in_background(key, query, evidence_texts, lang)
+                    resp.judge_async_dispatched = True
 
         if self.judge is not None and verdict is not None:
             resp.judge_available = verdict.available
@@ -429,7 +498,8 @@ class RAGPipeline:
         try:
             with Timer(lat, Stage.generation) as t:
                 gen: Generation = self.generator.generate(
-                    query, evidence_texts, lang, history=request.context)
+                    query, evidence_texts, lang, history=request.context,
+                    answer_mode=request.answer_mode.value)
                 t.attempts = gen.attempts
         except GenerationError as exc:
             return self._refuse(resp, RefusalReason.internal_error, lang,
@@ -501,6 +571,7 @@ class RAGPipeline:
                                          self.embedder,
                                          self.grounding_thresholds,
                                          evidence_vectors=ev_vectors)
+
         resp.grounded = grounding.passed
         resp.grounding_score = grounding.semantic_score
 

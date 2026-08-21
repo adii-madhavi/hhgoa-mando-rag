@@ -67,6 +67,17 @@ class Lang(str, Enum):
     kok = "kok"
 
 
+class AnswerMode(str, Enum):
+    fast = "fast"
+    detailed = "detailed"
+
+
+class AnswerOrigin(str, Enum):
+    corpus = "corpus"
+    goa_knowledge = "goa_knowledge"
+    external = "external"
+
+
 class Stage(str, Enum):
     validate = "validate"
     stt = "stt"
@@ -109,6 +120,7 @@ class RAGRequest(BaseModel):
     character: str = "mando"
     voice: str = "male"
     want_audio: bool = True
+    answer_mode: AnswerMode = AnswerMode.detailed
     context: list[Turn] = Field(default_factory=list, max_length=8)
     request_id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
 
@@ -135,6 +147,8 @@ class Evidence(BaseModel):
     bm25_score: float | None = None
     fused_score: float | None = None
     rerank_score: float | None = None
+    source_name: str | None = None
+    source_url: str | None = None
 
 
 class StageTiming(BaseModel):
@@ -183,6 +197,9 @@ class RAGResponse(BaseModel):
     language: Lang | None = None
     language_confidence: float | None = None
     answer: str | None = None
+    answer_mode: AnswerMode = AnswerMode.detailed
+    answer_origin: AnswerOrigin | None = None
+    external_verified: bool | None = None
     audio_base64: str | None = None
     # Set when want_audio was requested but no audio was produced -- e.g. a
     # Konkani refusal/answer, where bulbul:v3 has no kok-IN voice and TTS

@@ -8,6 +8,7 @@ data/index/
 data/qdrant/
 data/*.json
 *.parquet
+!data/goa_knowledge.json
 *.npy
 .pytest_cache/
 .DS_Store

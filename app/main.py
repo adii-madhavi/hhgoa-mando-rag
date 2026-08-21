@@ -37,12 +37,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import CONFIG                              # noqa: E402
 from app.guardrails.answerability import AnswerabilityJudge  # noqa: E402
+from app.generation.external import ExternalLLMGenerator  # noqa: E402
 from app.pipeline import RAGPipeline                       # noqa: E402
 from app.retrieval.loader import load_index                # noqa: E402
+from app.retrieval.goa_knowledge import GoaKnowledgeBase   # noqa: E402
 from app.retrieval.reranker import (CrossEncoderReranker,  # noqa: E402
                                     MMRReranker, NoOpReranker)
 from app.schemas import RAGRequest, RAGResponse            # noqa: E402
 from app.stt.sarvam import SarvamSTT                       # noqa: E402
+from app.stt.elevenlabs import ElevenLabsSTT               # noqa: E402
 from app.tts.sarvam_tts import SarvamTTS                   # noqa: E402
 
 logging.basicConfig(
@@ -76,6 +79,17 @@ def _build_reranker(embedder, dense_matrix=None):
     return MMRReranker(embedder, dense_matrix=dense_matrix)
 
 
+def _build_stt():
+    if not CONFIG.has_stt:
+        return None
+    if CONFIG.stt_provider == "elevenlabs":
+        return ElevenLabsSTT(
+            CONFIG.elevenlabs_api_key, model=CONFIG.elevenlabs_stt_model,
+            timeout_s=CONFIG.timeout_stt_ms / 1000)
+    return SarvamSTT(
+        CONFIG.sarvam_api_key, timeout_s=CONFIG.timeout_stt_ms / 1000)
+
+
 @app.on_event("startup")
 def startup() -> None:
     missing = CONFIG.missing_credentials()
@@ -85,8 +99,15 @@ def startup() -> None:
     try:
         t0 = time.perf_counter()
         loaded = load_index(CONFIG.index_dir, rrf_k=CONFIG.rrf_k)
-        stt = SarvamSTT(CONFIG.sarvam_api_key) if CONFIG.has_stt else None
-        tts = SarvamTTS(CONFIG.sarvam_api_key) if CONFIG.has_stt else None
+        stt = _build_stt()
+        tts = (SarvamTTS(CONFIG.sarvam_api_key)
+               if CONFIG.has_sarvam_tts else None)
+        external = (ExternalLLMGenerator(
+            api_key=CONFIG.external_llm_api_key,
+            base_url=CONFIG.external_llm_base_url,
+            model=CONFIG.external_llm_model,
+            provider=CONFIG.external_llm_provider)
+            if CONFIG.has_external_llm else None)
         # REGRESSION FIX: this constructor never passed judge= before, so the
         # deployed app silently ran on cosine-only guardrails -- the async
         # judge + verdict cache measured and decided as the production shape
@@ -97,6 +118,7 @@ def startup() -> None:
         # judge attached, which is why this gap went unnoticed: the numbers
         # in EXPERIMENTS.md are real, but they were never running here.
         judge = AnswerabilityJudge(timeout_s=8.0) if CONFIG.has_llm else None
+        goa_knowledge = GoaKnowledgeBase(loaded.embedder)
         STATE["pipeline"] = RAGPipeline(
             retriever=loaded.retriever, embedder=loaded.embedder,
             reranker=_build_reranker(loaded.embedder,
@@ -104,7 +126,9 @@ def startup() -> None:
             config=CONFIG, stt=stt, tts=tts,
             dense_matrix=loaded.retriever.matrix,
             judge=judge, judge_mode="async",
-            index_version=str(loaded.manifest.get("n_chunks", "")))
+            index_version=str(loaded.manifest.get("n_chunks", "")),
+            goa_knowledge=goa_knowledge,
+            external_generator=external)
         STATE["manifest"] = loaded.manifest
         log.info("index loaded: %d chunks in %.1fs (total startup %.1fs)",
                  len(loaded.chunks), loaded.load_seconds,
@@ -134,8 +158,9 @@ def health() -> dict:
         "missing_credentials": CONFIG.missing_credentials(),
         "capabilities": {
             "speech_to_text": CONFIG.has_stt,
-            "text_to_speech": CONFIG.has_stt,
+            "text_to_speech": CONFIG.has_sarvam_tts,
             "llm_generation": CONFIG.has_llm,
+            "external_generation": CONFIG.has_external_llm,
             "extractive_fallback": True,
         },
         "languages": ["en", "hi", "mr"],

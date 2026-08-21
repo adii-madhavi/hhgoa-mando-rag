@@ -34,6 +34,7 @@ INTERNAL_FIELD_NAMES = (
 )
 
 SECRET_MARKERS = ("SARVAM_API_KEY", "LLM_API_KEY", "sarvam-105b",
+                  "EXTERNAL_LLM_API_KEY", "ELEVENLABS_API_KEY",
                   "api-subscription-key", "Authorization", "Bearer ")
 
 

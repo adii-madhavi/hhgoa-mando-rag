@@ -73,6 +73,21 @@ class Config:
     llm_base_url: str = os.environ.get("LLM_BASE_URL",
                                        "https://api.sarvam.ai/v1")
 
+    # General-knowledge fallback, independent from the primary provider.
+    external_llm_api_key: str | None = field(
+        default_factory=lambda: os.environ.get("EXTERNAL_LLM_API_KEY"))
+    external_llm_base_url: str | None = field(
+        default_factory=lambda: os.environ.get("EXTERNAL_LLM_BASE_URL"))
+    external_llm_model: str | None = field(
+        default_factory=lambda: os.environ.get("EXTERNAL_LLM_MODEL"))
+    external_llm_provider: str | None = field(
+        default_factory=lambda: os.environ.get("EXTERNAL_LLM_PROVIDER"))
+
+    stt_provider: str = os.environ.get("STT_PROVIDER", "sarvam").lower()
+    elevenlabs_api_key: str | None = field(
+        default_factory=lambda: os.environ.get("ELEVENLABS_API_KEY"))
+    elevenlabs_stt_model: str = os.environ.get("ELEVENLABS_STT_MODEL", "scribe_v2")
+
     # -- voice -------------------------------------------------------------
     tts_model: str = os.environ.get("TTS_MODEL", "bulbul:v3")
     tts_speaker_male: str = os.environ.get("TTS_SPEAKER_MALE", "aditya")
@@ -80,7 +95,18 @@ class Config:
 
     @property
     def has_stt(self) -> bool:
+        if self.stt_provider == "elevenlabs":
+            return bool(self.elevenlabs_api_key)
+        return self.stt_provider == "sarvam" and bool(self.sarvam_api_key)
+
+    @property
+    def has_sarvam_tts(self) -> bool:
         return bool(self.sarvam_api_key)
+
+    @property
+    def has_external_llm(self) -> bool:
+        return all((self.external_llm_api_key, self.external_llm_base_url,
+                    self.external_llm_model))
 
     @property
     def has_llm(self) -> bool:
@@ -88,7 +114,11 @@ class Config:
 
     def missing_credentials(self) -> list[str]:
         missing = []
-        if not self.sarvam_api_key:
+        if self.stt_provider not in ("sarvam", "elevenlabs"):
+            missing.append("STT_PROVIDER (must be sarvam or elevenlabs)")
+        elif self.stt_provider == "elevenlabs" and not self.elevenlabs_api_key:
+            missing.append("ELEVENLABS_API_KEY (speech-to-text)")
+        elif self.stt_provider == "sarvam" and not self.sarvam_api_key:
             missing.append("SARVAM_API_KEY (speech-to-text and text-to-speech)")
         if not self.llm_api_key:
             missing.append("LLM_API_KEY (answer generation)")

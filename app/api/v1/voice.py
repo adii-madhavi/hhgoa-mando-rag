@@ -19,11 +19,13 @@ import base64
 from fastapi import APIRouter, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
-from app.api.v1.schemas import (PUBLIC_LANGUAGES, PUBLIC_VOICES,
+from app.api.v1.schemas import (PUBLIC_ANSWER_MODES, PUBLIC_LANGUAGES,
+                                PUBLIC_VOICES,
                                 VoiceQueryResponse)
 from app.api.v1.text import _sse_frame                        # reuse framing
 from app.api.v1.translate import to_voice_response
 from app.schemas import RAGRequest
+from app.telemetry import RUNTIME_LATENCIES
 
 router = APIRouter(tags=["voice"])
 
@@ -43,6 +45,9 @@ def _stream_body(payload: VoiceQueryResponse):
         "transcript": payload.transcript,
         "language": payload.language,
         "guardrail": payload.guardrail.model_dump(),
+        "answer_mode": payload.answer_mode,
+        "answer_origin": payload.answer_origin,
+        "external_verified": payload.external_verified,
     })
     if payload.guardrail.refused or not payload.answer:
         yield _sse_frame("done", {"answer": payload.answer,
@@ -56,6 +61,9 @@ def _stream_body(payload: VoiceQueryResponse):
         "audio_base64": payload.audio_base64,
         "latency": payload.latency.model_dump(),
         "session_id": payload.session_id,
+        "answer_mode": payload.answer_mode,
+        "answer_origin": payload.answer_origin,
+        "external_verified": payload.external_verified,
     })
 
 
@@ -66,6 +74,8 @@ async def voice_query(
     language: str = Form(default="auto"),
     voice: str = Form(default="male"),
     session_id: str | None = Form(default=None),
+    answer_mode: str = Form(default="detailed"),
+    want_audio: bool = Form(default=False),
 ):
     if language != "auto" and language not in PUBLIC_LANGUAGES:
         raise HTTPException(
@@ -76,6 +86,11 @@ async def voice_query(
         raise HTTPException(
             status_code=422,
             detail=f"voice must be one of {PUBLIC_VOICES}, got {voice!r}")
+    if answer_mode not in PUBLIC_ANSWER_MODES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"answer_mode must be one of {PUBLIC_ANSWER_MODES}, "
+                   f"got {answer_mode!r}")
 
     raw = await audio.read()
     if not raw:
@@ -84,8 +99,14 @@ async def voice_query(
     pipeline = _pipeline()
     internal = pipeline.run(RAGRequest(
         audio_base64=base64.b64encode(raw).decode("ascii"),
-        language=language, voice=voice, want_audio=True))
-    payload = to_voice_response(internal, session_id)
+        language=language, voice=voice, want_audio=want_audio,
+        answer_mode=answer_mode))
+    if internal.ok and not internal.refused and internal.answer:
+        runtime = RUNTIME_LATENCIES.record(
+            "voice", answer_mode, internal.latency.end_to_end_ms)
+    else:
+        runtime = RUNTIME_LATENCIES.snapshot("voice", answer_mode)
+    payload = to_voice_response(internal, session_id, runtime=runtime)
 
     accept = request.headers.get("accept", "")
     if "text/event-stream" in accept:

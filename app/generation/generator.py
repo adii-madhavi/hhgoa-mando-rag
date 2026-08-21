@@ -27,6 +27,7 @@ available offline.
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from dataclasses import dataclass, field
@@ -183,17 +184,21 @@ class LLMGenerator:
         return self.client.model
 
     def generate(self, query: str, evidence_texts: list[str], lang: str,
-                 history=None) -> Generation:
+                 history=None, answer_mode: str = "detailed") -> Generation:
         if not self.client.available:
             raise GenerationError("no LLM API key configured")
         if not evidence_texts:
             raise GenerationError("refusing to generate with no evidence")
 
         n_sources = len(evidence_texts)
+        mode_instruction = ("Give one direct sentence and no preamble."
+                            if answer_mode == "fast" else
+                            "Give a useful concise answer; include detail only when supported.")
         messages = [
             {"role": "system", "content": system_prompt(lang, self.persona)},
             {"role": "user", "content": build_user_prompt(
-                sanitize_for_prompt(query), evidence_texts, history)},
+                sanitize_for_prompt(query), evidence_texts, history)
+                + f"\n\nAnswer mode: {answer_mode}. {mode_instruction}"},
         ]
 
         def _validate(payload: dict) -> GenerationOutput:
@@ -211,7 +216,8 @@ class LLMGenerator:
         try:
             parsed, meta = self.client.chat_json(
                 messages, _validate, temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_tokens=(min(self.max_tokens, 800)
+                            if answer_mode == "fast" else self.max_tokens),
                 max_schema_attempts=self.max_schema_attempts,
                 response_format={"type": "json_object"})
         except (LLMSchemaError, LLMTransient, LLMError) as exc:
@@ -235,7 +241,6 @@ class LLMGenerator:
             attempts=meta.http_attempts,
             schema_attempts=meta.schema_attempts,
         )
-
 
     def generate_stream(self, query: str, evidence_texts: list[str], lang: str,
                         history=None, deadline_s: float | None = None):
@@ -364,7 +369,7 @@ class ExtractiveGenerator:
         self.sentence_budget = sentence_budget
 
     def generate(self, query: str, evidence_texts: list[str], lang: str,
-                 history=None) -> Generation:
+                 history=None, answer_mode: str = "detailed") -> Generation:
         from ingestion.chunk import split_sentences
 
         t0 = time.perf_counter()
@@ -382,7 +387,8 @@ class ExtractiveGenerator:
         sv = self.embedder.encode_passages(sentences,
                                            batch_size=len(sentences))
         scores = sv @ qv
-        top = np.argsort(-scores)[:self.max_sentences]
+        sentence_count = 1 if answer_mode == "fast" else self.max_sentences
+        top = np.argsort(-scores)[:sentence_count]
         top = sorted(top)                      # keep original reading order
 
         answer = " ".join(sentences[int(i)] for i in top)

@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field, field_validator
 # is ever refactored. "auto" is a request-only value, not a language.
 PUBLIC_LANGUAGES = ("en", "hi", "mr", "kok")
 PUBLIC_VOICES = ("male", "female")
+PUBLIC_ANSWER_MODES = ("fast", "detailed")
 
 
 class SourceItem(BaseModel):
@@ -34,6 +35,16 @@ class SourceItem(BaseModel):
     relevance: float = Field(
         description="0-1 relevance score. Internal scoring method "
                     "(dense/rerank/fused) is not exposed.")
+    source_name: str | None = None
+    source_url: str | None = None
+
+
+class RuntimePercentiles(BaseModel):
+    category: str
+    samples: int
+    p50_ms: float | None = None
+    p70_ms: float | None = None
+    collecting: bool = True
 
 
 class LatencyMeta(BaseModel):
@@ -49,6 +60,7 @@ class LatencyMeta(BaseModel):
     total_ms: float = Field(description="retrieval_ms + generation_ms.")
     streamed: bool = Field(
         default=False, description="Whether the answer was delivered via SSE.")
+    runtime: RuntimePercentiles | None = None
 
 
 class GuardrailStatus(BaseModel):
@@ -82,6 +94,7 @@ class TextQueryRequest(BaseModel):
                     "conversation history and must resend it via future "
                     "context support; it is accepted here for forward "
                     "compatibility only.")
+    answer_mode: str = Field(default="detailed")
 
     @field_validator("language")
     @classmethod
@@ -92,6 +105,13 @@ class TextQueryRequest(BaseModel):
                 f"got {v!r}")
         return v
 
+    @field_validator("answer_mode")
+    @classmethod
+    def _mode_ok(cls, v: str) -> str:
+        if v not in PUBLIC_ANSWER_MODES:
+            raise ValueError(f"answer_mode must be one of {PUBLIC_ANSWER_MODES}")
+        return v
+
 
 class TextQueryResponse(BaseModel):
     answer: str
@@ -100,6 +120,9 @@ class TextQueryResponse(BaseModel):
     latency: LatencyMeta
     guardrail: GuardrailStatus
     session_id: str | None = None
+    answer_mode: str = "detailed"
+    answer_origin: str | None = None
+    external_verified: bool | None = None
 
 
 class VoiceQueryResponse(TextQueryResponse):

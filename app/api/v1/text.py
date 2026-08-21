@@ -29,6 +29,7 @@ from fastapi.responses import StreamingResponse
 from app.api.v1.schemas import TextQueryRequest, TextQueryResponse
 from app.api.v1.translate import to_text_response
 from app.schemas import RAGRequest
+from app.telemetry import RUNTIME_LATENCIES
 
 router = APIRouter(tags=["text"])
 
@@ -51,6 +52,9 @@ def _stream_body(payload: TextQueryResponse):
     yield _sse_frame("meta", {
         "language": payload.language,
         "guardrail": payload.guardrail.model_dump(),
+        "answer_mode": payload.answer_mode,
+        "answer_origin": payload.answer_origin,
+        "external_verified": payload.external_verified,
     })
     if payload.guardrail.refused or not payload.answer:
         yield _sse_frame("done", {"answer": payload.answer,
@@ -63,6 +67,9 @@ def _stream_body(payload: TextQueryResponse):
         "sources": [s.model_dump() for s in payload.sources],
         "latency": payload.latency.model_dump(),
         "session_id": payload.session_id,
+        "answer_mode": payload.answer_mode,
+        "answer_origin": payload.answer_origin,
+        "external_verified": payload.external_verified,
     })
 
 
@@ -70,8 +77,14 @@ def _stream_body(payload: TextQueryResponse):
 def text_query(body: TextQueryRequest, request: Request):
     pipeline = _pipeline()
     internal = pipeline.run(RAGRequest(
-        text=body.query, language=body.language, want_audio=False))
-    payload = to_text_response(internal, body.session_id)
+        text=body.query, language=body.language, want_audio=False,
+        answer_mode=body.answer_mode))
+    if internal.ok and not internal.refused and internal.answer:
+        runtime = RUNTIME_LATENCIES.record(
+            "text", body.answer_mode, internal.latency.total_rag_ms)
+    else:
+        runtime = RUNTIME_LATENCIES.snapshot("text", body.answer_mode)
+    payload = to_text_response(internal, body.session_id, runtime=runtime)
 
     accept = request.headers.get("accept", "")
     if "text/event-stream" in accept:

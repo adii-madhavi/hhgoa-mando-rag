@@ -1,0 +1,543 @@
+[
+  {
+    "id": "capital-panaji",
+    "category": "geography",
+    "title": "Panaji, Goa's capital",
+    "text": "Panaji, also called Panjim, is the capital city of Goa.",
+    "aliases": [
+      "What is the capital of Goa?",
+      "capital of Goa",
+      "Panaji",
+      "Panjim",
+      "गोवा की राजधानी क्या है",
+      "गोवा की राजधानी",
+      "पणजी",
+      "गोव्याची राजधानी काय आहे",
+      "गोव्याची राजधानी",
+      "गोंयची राजधानी"
+    ],
+    "source_name": "Government of Goa — Panaji",
+    "source_url": "https://www.goa.gov.in/places/panaji-also-known-as-panjim/"
+  },
+  {
+    "id": "districts",
+    "category": "geography",
+    "title": "Goa's districts",
+    "text": "Goa's government describes North Goa and South Goa and identifies Kushavati as the newest district.",
+    "aliases": [
+      "North Goa",
+      "South Goa",
+      "Goa districts",
+      "Kushavati"
+    ],
+    "source_name": "Government of Goa — Districts",
+    "source_url": "https://www.goa.gov.in/know-goa/districts-of-goa/"
+  },
+  {
+    "id": "vasco",
+    "category": "cities",
+    "title": "Vasco da Gama",
+    "text": "Vasco da Gama is an industrial town on the Mormugao peninsula and is associated with Mormugao harbour.",
+    "aliases": [
+      "Vasco",
+      "Vasco da Gama Goa",
+      "Mormugao"
+    ],
+    "source_name": "Government of Goa — Vasco",
+    "source_url": "https://www.goa.gov.in/places/vasco/"
+  },
+  {
+    "id": "margao",
+    "category": "cities",
+    "title": "Margao",
+    "text": "Margao is the principal commercial town of South Goa and is also known as Madgaon.",
+    "aliases": [
+      "Margao",
+      "Madgaon",
+      "South Goa commercial town"
+    ],
+    "source_name": "Government of Goa — Margao",
+    "source_url": "https://www.goa.gov.in/places/margao/"
+  },
+  {
+    "id": "mapusa",
+    "category": "cities",
+    "title": "Mapusa",
+    "text": "Mapusa is a North Goa market town known for its Friday market.",
+    "aliases": [
+      "Mapusa",
+      "Mapuca",
+      "Friday market Goa"
+    ],
+    "source_name": "Government of Goa — Mapusa",
+    "source_url": "https://www.goa.gov.in/places/mapusa/"
+  },
+  {
+    "id": "old-goa",
+    "category": "history",
+    "title": "Old Goa",
+    "text": "Old Goa was the capital under Portuguese rule until the capital shifted to Panjim in 1843.",
+    "aliases": [
+      "Old Goa",
+      "Velha Goa",
+      "former capital"
+    ],
+    "source_name": "Goa Department of Information — History",
+    "source_url": "https://dip.goa.gov.in/history-of-goa/"
+  },
+  {
+    "id": "liberation",
+    "category": "history",
+    "title": "Goa Liberation",
+    "text": "Goa became part of the Indian Union on 19 December 1961 following Operation Vijay.",
+    "aliases": [
+      "Goa Liberation",
+      "Operation Vijay",
+      "19 December 1961"
+    ],
+    "source_name": "Goa Department of Information — History",
+    "source_url": "https://dip.goa.gov.in/history-of-goa/"
+  },
+  {
+    "id": "statehood",
+    "category": "history",
+    "title": "Goa statehood",
+    "text": "Goa became India's twenty-fifth state on 30 May 1987.",
+    "aliases": [
+      "Goa statehood",
+      "30 May 1987",
+      "twenty-fifth state"
+    ],
+    "source_name": "Goa Department of Information — History",
+    "source_url": "https://dip.goa.gov.in/history-of-goa/"
+  },
+  {
+    "id": "portuguese-heritage",
+    "category": "heritage",
+    "title": "Portuguese heritage",
+    "text": "Portuguese rule began with the capture of Goa in 1510 and left a visible legacy in the state's churches, houses and urban form.",
+    "aliases": [
+      "Portuguese Goa",
+      "1510",
+      "Portuguese heritage"
+    ],
+    "source_name": "Goa Department of Information — History",
+    "source_url": "https://dip.goa.gov.in/history-of-goa/"
+  },
+  {
+    "id": "basilica",
+    "category": "churches",
+    "title": "Basilica of Bom Jesus",
+    "text": "The Basilica of Bom Jesus is one of the churches in the UNESCO-listed Churches and Convents of Goa at Old Goa.",
+    "aliases": [
+      "Basilica of Bom Jesus",
+      "Bom Jesus",
+      "UNESCO Old Goa"
+    ],
+    "source_name": "UNESCO — Churches and Convents of Goa",
+    "source_url": "https://whc.unesco.org/en/list/234/"
+  },
+  {
+    "id": "se-cathedral",
+    "category": "churches",
+    "title": "Se Cathedral",
+    "text": "Se Cathedral is part of the UNESCO-listed group of churches and convents at Old Goa.",
+    "aliases": [
+      "Se Cathedral",
+      "Sé Cathedral",
+      "Old Goa cathedral"
+    ],
+    "source_name": "UNESCO — Churches and Convents of Goa",
+    "source_url": "https://whc.unesco.org/en/list/234/"
+  },
+  {
+    "id": "fontainhas",
+    "category": "heritage",
+    "title": "Fontainhas",
+    "text": "Fontainhas is Panaji's historic Latin Quarter, noted for colourful houses and Portuguese-influenced streetscapes.",
+    "aliases": [
+      "Fontainhas",
+      "Latin Quarter Panaji",
+      "Portuguese houses"
+    ],
+    "source_name": "Government of Goa — Panaji",
+    "source_url": "https://www.goa.gov.in/places/panaji-also-known-as-panjim/"
+  },
+  {
+    "id": "fort-aguada",
+    "category": "forts",
+    "title": "Fort Aguada",
+    "text": "Fort Aguada is a seventeenth-century Portuguese fort overlooking the Arabian Sea and the Mandovi estuary.",
+    "aliases": [
+      "Fort Aguada",
+      "Aguada lighthouse",
+      "Mandovi estuary"
+    ],
+    "source_name": "NRI Commission, Government of Goa — Forts",
+    "source_url": "https://nri.goa.gov.in/forts/"
+  },
+  {
+    "id": "chapora-fort",
+    "category": "forts",
+    "title": "Chapora Fort",
+    "text": "Chapora Fort stands above the Chapora River and offers views toward Vagator and the Arabian Sea.",
+    "aliases": [
+      "Chapora Fort",
+      "Chapora River",
+      "Vagator fort"
+    ],
+    "source_name": "Government of Goa — Chapora Fort",
+    "source_url": "https://www.goa.gov.in/places/chapora-fort/"
+  },
+  {
+    "id": "dudhsagar",
+    "category": "nature",
+    "title": "Dudhsagar Falls",
+    "text": "Dudhsagar Falls is a four-tiered waterfall on the Mandovi River in the Bhagwan Mahavir wildlife area.",
+    "aliases": [
+      "Dudhsagar Falls",
+      "Dudhsagar waterfall",
+      "Bhagwan Mahavir"
+    ],
+    "source_name": "Government of Goa — Dudhsagar Waterfalls",
+    "source_url": "https://www.goa.gov.in/places/dudhsagar-waterfalls/"
+  },
+  {
+    "id": "mandovi",
+    "category": "geography",
+    "title": "Mandovi River",
+    "text": "The Mandovi is one of Goa's major rivers and reaches the Arabian Sea near Panaji.",
+    "aliases": [
+      "Mandovi River",
+      "Mhadei",
+      "river Panaji"
+    ],
+    "source_name": "Government of Goa — About Goa",
+    "source_url": "https://www.goa.gov.in/know-goa/about-goa-state/"
+  },
+  {
+    "id": "zuari",
+    "category": "geography",
+    "title": "Zuari River",
+    "text": "The Zuari is one of Goa's major rivers and forms an important estuarine system in the state.",
+    "aliases": [
+      "Zuari River",
+      "Goa rivers",
+      "Zuari estuary"
+    ],
+    "source_name": "Government of Goa — About Goa",
+    "source_url": "https://www.goa.gov.in/know-goa/about-goa-state/"
+  },
+  {
+    "id": "calangute",
+    "category": "beaches",
+    "title": "Calangute Beach",
+    "text": "Calangute is a prominent North Goa beach on the Arabian Sea coast.",
+    "aliases": [
+      "Calangute Beach",
+      "Calangute Goa",
+      "North Goa beach"
+    ],
+    "source_name": "Government of Goa — Beaches",
+    "source_url": "https://www.goa.gov.in/what_to_see/beaches/"
+  },
+  {
+    "id": "baga",
+    "category": "beaches",
+    "title": "Baga Beach",
+    "text": "Baga is a North Goa beach adjoining the Calangute stretch.",
+    "aliases": [
+      "Baga Beach",
+      "Baga Goa",
+      "Calangute Baga"
+    ],
+    "source_name": "NRI Commission, Government of Goa — Beaches",
+    "source_url": "https://nri.goa.gov.in/beaches/"
+  },
+  {
+    "id": "anjuna",
+    "category": "beaches",
+    "title": "Anjuna Beach",
+    "text": "Anjuna is a North Goa coastal village and beach associated with a long-running flea market.",
+    "aliases": [
+      "Anjuna Beach",
+      "Anjuna flea market",
+      "North Goa"
+    ],
+    "source_name": "NRI Commission, Government of Goa — Beaches",
+    "source_url": "https://nri.goa.gov.in/beaches/"
+  },
+  {
+    "id": "vagator",
+    "category": "beaches",
+    "title": "Vagator Beach",
+    "text": "Vagator is a North Goa beach below the headland crowned by Chapora Fort.",
+    "aliases": [
+      "Vagator Beach",
+      "Chapora Fort beach",
+      "North Goa"
+    ],
+    "source_name": "NRI Commission, Government of Goa — Beaches",
+    "source_url": "https://nri.goa.gov.in/beaches/"
+  },
+  {
+    "id": "palolem",
+    "category": "beaches",
+    "title": "Palolem Beach",
+    "text": "Palolem is a crescent-shaped beach in Canacona in South Goa.",
+    "aliases": [
+      "Palolem Beach",
+      "Canacona beach",
+      "South Goa"
+    ],
+    "source_name": "NRI Commission, Government of Goa — Beaches",
+    "source_url": "https://nri.goa.gov.in/beaches/"
+  },
+  {
+    "id": "colva",
+    "category": "beaches",
+    "title": "Colva Beach",
+    "text": "Colva is a broad sandy beach in South Goa, close to Margao.",
+    "aliases": [
+      "Colva Beach",
+      "South Goa beach",
+      "Margao beach"
+    ],
+    "source_name": "Government of Goa — Colva Beach",
+    "source_url": "https://www.goa.gov.in/places/colva-beach/"
+  },
+  {
+    "id": "carnival",
+    "category": "festivals",
+    "title": "Goa Carnival",
+    "text": "Goa Carnival is a pre-Lenten celebration marked by public parades, music and performance.",
+    "aliases": [
+      "Goa Carnival",
+      "Carnaval Goa",
+      "pre-Lenten festival"
+    ],
+    "source_name": "Goa Department of Information — People of Goa",
+    "source_url": "https://dip.goa.gov.in/people-of-goa/"
+  },
+  {
+    "id": "sao-joao",
+    "category": "festivals",
+    "title": "São João",
+    "text": "São João is celebrated in Goa during the monsoon and is associated with community festivities and traditional well-jumping.",
+    "aliases": [
+      "São João",
+      "Sao Joao Goa",
+      "monsoon festival"
+    ],
+    "source_name": "Goa Tourism — Faith and Heritage",
+    "source_url": "https://goatourism.gov.in/faith-heritage-and-spiritual-tourism-lead-goa-towards-a-more-reflective-tourism-experience/"
+  },
+  {
+    "id": "shigmo",
+    "category": "festivals",
+    "title": "Shigmo",
+    "text": "Shigmo is a major Goan spring festival featuring processions, folk dance and music.",
+    "aliases": [
+      "Shigmo",
+      "Shigmotsav",
+      "Goa spring festival"
+    ],
+    "source_name": "Goa Department of Information — People of Goa",
+    "source_url": "https://dip.goa.gov.in/people-of-goa/"
+  },
+  {
+    "id": "ganesh-chaturthi",
+    "category": "festivals",
+    "title": "Ganesh Chaturthi in Goa",
+    "text": "Ganesh Chaturthi, locally called Chavoth, is widely celebrated by Goan families.",
+    "aliases": [
+      "Ganesh Chaturthi Goa",
+      "Chavoth",
+      "Ganesh festival"
+    ],
+    "source_name": "Goa Department of Information — People of Goa",
+    "source_url": "https://dip.goa.gov.in/people-of-goa/"
+  },
+  {
+    "id": "cuisine",
+    "category": "food",
+    "title": "Goan cuisine",
+    "text": "Goan cuisine reflects coastal ingredients and varied Hindu and Christian culinary traditions.",
+    "aliases": [
+      "Goan cuisine",
+      "Goa food",
+      "coastal cuisine"
+    ],
+    "source_name": "Goa Department of Information — People of Goa",
+    "source_url": "https://dip.goa.gov.in/people-of-goa/"
+  },
+  {
+    "id": "fish-curry-rice",
+    "category": "food",
+    "title": "Fish curry rice",
+    "text": "Rice with fish curry, commonly called xit kodi, is described as a staple Goan meal.",
+    "aliases": [
+      "fish curry rice",
+      "xit kodi",
+      "Goan staple"
+    ],
+    "source_name": "Goa Department of Information — People of Goa",
+    "source_url": "https://dip.goa.gov.in/people-of-goa/"
+  },
+  {
+    "id": "xacuti",
+    "category": "food",
+    "title": "Xacuti",
+    "text": "Xacuti is a Goan curry style known for a complex roasted-spice and coconut base.",
+    "aliases": [
+      "xacuti",
+      "shagoti",
+      "Goan curry"
+    ],
+    "source_name": "Government of Goa — Culture and Tourism",
+    "source_url": "https://stcorporation.goa.gov.in/"
+  },
+  {
+    "id": "vindaloo",
+    "category": "food",
+    "title": "Vindaloo",
+    "text": "Vindaloo is a Goan meat preparation whose name and style reflect Portuguese and local culinary influences.",
+    "aliases": [
+      "vindaloo",
+      "Goan vindaloo",
+      "Portuguese Goan food"
+    ],
+    "source_name": "Government of Goa — Culture and Tourism",
+    "source_url": "https://stcorporation.goa.gov.in/"
+  },
+  {
+    "id": "bebinca",
+    "category": "food",
+    "title": "Bebinca",
+    "text": "Bebinca is a layered Goan dessert traditionally made with ingredients including coconut milk, eggs, sugar and flour.",
+    "aliases": [
+      "bebinca",
+      "bibik",
+      "Goan layered dessert"
+    ],
+    "source_name": "Government of Goa — Culture and Tourism",
+    "source_url": "https://stcorporation.goa.gov.in/"
+  },
+  {
+    "id": "feni",
+    "category": "food",
+    "title": "Feni",
+    "text": "Feni is a spirit associated with Goa and is made from cashew apples or coconut palm sap.",
+    "aliases": [
+      "feni",
+      "cashew feni",
+      "coconut feni"
+    ],
+    "source_name": "Government of Goa — Mapusa",
+    "source_url": "https://www.goa.gov.in/places/mapusa/"
+  },
+  {
+    "id": "tiatr",
+    "category": "performing-arts",
+    "title": "Tiatr",
+    "text": "Tiatr is a popular form of Konkani musical theatre supported by the Tiatr Academy of Goa.",
+    "aliases": [
+      "tiatr",
+      "Konkani theatre",
+      "Tiatr Academy"
+    ],
+    "source_name": "Government of Goa — Tiatr Academy",
+    "source_url": "https://www.goa.gov.in/department/tiatr-academy-of-goa/"
+  },
+  {
+    "id": "konkani",
+    "category": "language",
+    "title": "Konkani",
+    "text": "Konkani is Goa's official language; Marathi is also used for official purposes under state law.",
+    "aliases": [
+      "Konkani language",
+      "official language Goa",
+      "Marathi Goa"
+    ],
+    "source_name": "Government of Goa — About Goa",
+    "source_url": "https://www.goa.gov.in/know-goa/about-goa-state/"
+  },
+  {
+    "id": "music",
+    "category": "performing-arts",
+    "title": "Goan music",
+    "text": "Goa's musical traditions include folk forms as well as the song-and-dance form called Mando.",
+    "aliases": [
+      "Goan music",
+      "Mando",
+      "folk music Goa"
+    ],
+    "source_name": "Directorate of Art and Culture — Folk Tradition",
+    "source_url": "https://artandculture.goa.gov.in/en/art-culture/folk-tradition-of-goa"
+  },
+  {
+    "id": "architecture",
+    "category": "architecture",
+    "title": "Goan architecture",
+    "text": "Goan architecture shows Indian and Portuguese influences in religious buildings and domestic houses.",
+    "aliases": [
+      "Goan architecture",
+      "Portuguese houses",
+      "Goa heritage buildings"
+    ],
+    "source_name": "Goa Department of Information — Art and Handicrafts",
+    "source_url": "https://dip.goa.gov.in/art-handcrafts-of-goa/"
+  },
+  {
+    "id": "temples",
+    "category": "temples",
+    "title": "Goa's temples",
+    "text": "Goa has important temple traditions, with well-known temples concentrated around Ponda and elsewhere in the state.",
+    "aliases": [
+      "Goa temples",
+      "Ponda temples",
+      "Hindu heritage Goa"
+    ],
+    "source_name": "Government of Goa — Temples",
+    "source_url": "https://www.goa.gov.in/what_to_see/temples/"
+  },
+  {
+    "id": "shantadurga",
+    "category": "temples",
+    "title": "Shantadurga Temple",
+    "text": "The Shantadurga Temple at Kavlem in Ponda taluka is an important Goan temple complex.",
+    "aliases": [
+      "Shantadurga Temple",
+      "Kavlem temple",
+      "Ponda"
+    ],
+    "source_name": "Government of Goa — Shanta Durga Temple",
+    "source_url": "https://www.goa.gov.in/places/shanta-durga-temple/"
+  },
+  {
+    "id": "churches",
+    "category": "churches",
+    "title": "Goa's churches",
+    "text": "Goa's church heritage includes the monumental churches and convents of Old Goa and active parish traditions across the state.",
+    "aliases": [
+      "Goa churches",
+      "Old Goa churches",
+      "Christian heritage Goa"
+    ],
+    "source_name": "UNESCO — Churches and Convents of Goa",
+    "source_url": "https://whc.unesco.org/en/list/234/"
+  },
+  {
+    "id": "wildlife",
+    "category": "nature",
+    "title": "Forests and wildlife",
+    "text": "Almost one-third of Goa is described as forested, supporting wildlife sanctuaries and varied Western Ghats habitats.",
+    "aliases": [
+      "Goa wildlife",
+      "Goa forests",
+      "Western Ghats nature"
+    ],
+    "source_name": "Government of Goa — About Goa",
+    "source_url": "https://www.goa.gov.in/know-goa/about-goa-state/"
+  }
+]

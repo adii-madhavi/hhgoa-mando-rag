@@ -706,7 +706,7 @@
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
       border-radius: var(--radius-lg);
-      padding: 16px;
+      padding: clamp(18px, 3vw, 30px);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -776,10 +776,11 @@
 
     /* Main Answer Typography */
     .mando-answer-body {
-      font-size: 13.5px;
+      font-size: clamp(18px, 2vw, 20px);
       color: var(--text-main);
-      line-height: 1.6;
+      line-height: 1.7;
       word-break: break-word;
+      overflow-wrap: anywhere;
     }
     .mando-answer-body strong {
       color: var(--gold-primary);
@@ -849,6 +850,58 @@
       background: var(--gold-primary);
       color: #150d06;
       box-shadow: 0 0 12px var(--gold-glow);
+    }
+
+    .answer-title-row, .answer-mode-toggle, .provenance-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .answer-title-row { justify-content: space-between; }
+    .answer-title {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: clamp(20px, 2.5vw, 26px);
+      letter-spacing: .04em;
+    }
+    .answer-mode-btn {
+      border: 1px solid var(--bg-card-border);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      border-radius: var(--radius-full);
+      padding: 7px 11px;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 36px;
+    }
+    .answer-mode-btn.active {
+      color: #150d06;
+      background: var(--gold-primary);
+      border-color: var(--gold-primary);
+    }
+    .provenance-badge {
+      display: inline-flex;
+      border-radius: var(--radius-full);
+      padding: 6px 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--bg-card-border);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .external-warning { color: var(--text-muted); font-size: 13px; }
+    .performance-panel {
+      border-top: 1px solid var(--bg-card-border);
+      padding-top: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .performance-panel summary { cursor: pointer; font-weight: 700; color: var(--text-main); }
+    .performance-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 6px 14px;
+      margin-top: 10px;
     }
 
     .action-icons-group {
@@ -1452,6 +1505,7 @@
       .explore-grid-2col {
         grid-template-columns: repeat(4, 1fr);
       }
+      #view-mando { width: min(100%, 1080px); margin: 0 auto; }
     }
 
     /* Reduced Motion */
@@ -1890,9 +1944,22 @@
                 </button>
               </div>
 
+              <div class="answer-title-row">
+                <h2 class="answer-title">MANDO ANSWER</h2>
+                <div class="answer-mode-toggle" role="group" aria-label="Answer detail mode">
+                  <button class="answer-mode-btn" id="mode-fast" onclick="selectAnswerMode('fast')">⚡ Fast Answer</button>
+                  <button class="answer-mode-btn active" id="mode-detailed" onclick="selectAnswerMode('detailed')">🧠 Detailed Answer</button>
+                </div>
+              </div>
+
               <!-- Main Answer Text -->
               <div class="mando-answer-body" id="mando-answer-text">
                 Ask Mando a question to see a real, sourced answer here.
+              </div>
+
+              <div class="provenance-row" id="answer-provenance" hidden>
+                <span class="provenance-badge" id="answer-origin-badge"></span>
+                <span class="external-warning" id="external-warning"></span>
               </div>
 
               <!-- Backend TTS unavailability, shown unobtrusively when relevant -->
@@ -1908,10 +1975,17 @@
                 <span style="font-size:11.5px; color:var(--gold-primary); font-weight:600;">View citations →</span>
               </div>
 
+              <details class="performance-panel" id="performance-panel">
+                <summary>Performance</summary>
+                <div class="performance-grid" id="performance-grid">
+                  <span>Current</span><span>Unavailable</span>
+                </div>
+              </details>
+
               <!-- Actions Bar -->
               <div class="answer-actions-bar">
                 <button class="listen-btn-primary" id="listen-speech-btn" onclick="toggleMandoSpeech()">
-                  <span id="listen-icon">▶</span>
+                  <span id="listen-icon">🔊</span>
                   <span id="listen-text">Listen</span>
                 </button>
 
@@ -2292,6 +2366,8 @@
     let currentAnswer = "";
     let currentAnswerLang = "en";
     let currentSources = [];
+    let currentBackendAudio = null;
+    let answerMode = 'detailed';
 
     let isSpeaking = false;
     let isRecording = false;
@@ -2304,6 +2380,13 @@
     // backend rejects them with 422 -- so they were replaced with the
     // languages the API actually accepts.
     let activeLanguage = 'auto';
+
+    function selectAnswerMode(mode) {
+      if (mode !== 'fast' && mode !== 'detailed') return;
+      answerMode = mode;
+      document.getElementById('mode-fast').classList.toggle('active', mode === 'fast');
+      document.getElementById('mode-detailed').classList.toggle('active', mode === 'detailed');
+    }
 
     // Browser text-to-speech is OPT IN, off by default: a normal text answer
     // must never unexpectedly start speaking. Real backend-synthesized audio
@@ -2392,6 +2475,7 @@
       currentAnswer = data.answer || "No response received.";
       currentSources = data.sources || [];
       currentAnswerLang = data.language || 'en';
+      currentBackendAudio = data.audio_base64 || null;
 
       const answerEl = document.getElementById('mando-answer-text');
       const refused = !!(data.guardrail && data.guardrail.refused);
@@ -2405,7 +2489,29 @@
         : formatted;
 
       document.getElementById('sources-count-num').textContent = currentSources.length;
+      const sourcesBar = document.querySelector('.answer-sources-bar');
+      const isExternal = data.answer_origin === 'external';
+      sourcesBar.hidden = isExternal || refused;
       renderSourcesInSheet();
+
+      const provenance = document.getElementById('answer-provenance');
+      const badge = document.getElementById('answer-origin-badge');
+      const warning = document.getElementById('external-warning');
+      const labels = {
+        corpus: '📚 Corpus grounded',
+        goa_knowledge: '🌴 Verified Goa knowledge',
+        external: '🌐 External knowledge'
+      };
+      if (!refused && labels[data.answer_origin]) {
+        provenance.hidden = false;
+        badge.textContent = labels[data.answer_origin];
+        warning.textContent = isExternal ? 'Not verified against the HHGoa corpus.' : '';
+      } else {
+        provenance.hidden = true;
+        badge.textContent = '';
+        warning.textContent = '';
+      }
+      renderPerformance(data);
 
       setMandoState(refused ? 'idle' : 'success');
       const safeQuery = escapeHtml(query);
@@ -2415,18 +2521,28 @@
 
       renderAudioAvailability(data);
 
-      // Prefer the REAL synthesized voice from the backend (Sarvam TTS) when
-      // one came back -- that IS the voice feature the user asked for, and
-      // always plays. Only fall back to the browser's own speech synthesis
-      // when the backend produced no audio for this response, and even then
-      // only if the user opted into that fallback (Appearance & Audio
-      // settings) -- a normal text answer must never unexpectedly start
-      // talking. The user can always press Listen manually either way.
-      if (data.audio_base64) {
-        playBackendAudio(data.audio_base64);
-      } else if (autoplayEnabled) {
-        startSpeech();
+      // Speech is always user-triggered. Rendering never regenerates or
+      // automatically plays either browser or backend audio.
+    }
+
+    function renderPerformance(data) {
+      const grid = document.getElementById('performance-grid');
+      const latency = data.latency || {};
+      const runtime = latency.runtime || {};
+      const modeLabel = data.answer_mode === 'fast' ? 'Fast Answer' : 'Detailed Answer';
+      const originLabel = (data.answer_origin || 'unavailable').replace('_', ' ');
+      const rows = [
+        ['Current', Number.isFinite(latency.total_ms) ? `${latency.total_ms} ms` : 'Unavailable'],
+        ['Mode', modeLabel], ['Origin', originLabel]
+      ];
+      if (runtime.collecting) {
+        rows.push(['P50 / P70', `Collecting data (${runtime.samples || 0} samples)`]);
+      } else if (runtime.p50_ms != null && runtime.p70_ms != null) {
+        rows.push(['P50', `${runtime.p50_ms} ms`], ['P70', `${runtime.p70_ms} ms`],
+                  ['Samples', String(runtime.samples)]);
       }
+      grid.innerHTML = rows.map(([label, value]) =>
+        `<span>${escapeHtml(label)}</span><span>${escapeHtml(value)}</span>`).join('');
     }
 
     // Surfaces audio_unavailable_reason visibly but unobtrusively (a small
@@ -2470,7 +2586,7 @@
         const res = await fetch('/api/text/query', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: query, language: activeLanguage })
+          body: JSON.stringify({ query: query, language: activeLanguage, answer_mode: answerMode })
         });
 
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -2534,9 +2650,9 @@
       // (untrusted) -- escape every field.
       container.innerHTML = currentSources.map(s => `
         <div class="source-detail-card">
-          <div class="source-detail-title">${escapeHtml(s.title || s.source || 'Cultural Heritage Archive')}</div>
-          <div class="source-detail-origin">🏛️ ${escapeHtml(s.source || 'Goan Heritage Records')}</div>
-          <div class="source-detail-text">${escapeHtml(s.text || 'Historical reference and verified documentation.')}</div>
+          <div class="source-detail-title">${escapeHtml(s.source_name || 'HHGoa corpus passage')}</div>
+          <div class="source-detail-origin">${s.source_url ? `🔗 ${escapeHtml(s.source_url)}` : '📚 HHGoa evidence'}</div>
+          <div class="source-detail-text">${escapeHtml(s.text || '')}</div>
         </div>
       `).join('');
     }
@@ -2564,13 +2680,13 @@
       if (listenBtn && listenText) {
         if (speaking) {
           listenBtn.classList.add('active-speaking');
-          listenText.textContent = 'Pause';
-          listenIcon.textContent = '⏸';
+          listenText.textContent = 'Stop';
+          listenIcon.textContent = '■';
           capsuleLabel.textContent = 'Speaking...';
         } else {
           listenBtn.classList.remove('active-speaking');
           listenText.textContent = 'Listen';
-          listenIcon.textContent = '▶';
+          listenIcon.textContent = '🔊';
           capsuleLabel.textContent = 'Mando';
         }
       }
@@ -2579,8 +2695,11 @@
     function toggleMandoSpeech() {
       if (isSpeaking) {
         stopSpeech();
-      } else {
+      } else if ('speechSynthesis' in window) {
         startSpeech();
+      } else if (currentBackendAudio) {
+        // Explicit backend audio is a fallback when browser speech is absent.
+        playBackendAudio(currentBackendAudio);
       }
     }
 
@@ -2623,6 +2742,10 @@
     function stopSpeech() {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+      }
+      if (backendAudioEl) {
+        backendAudioEl.pause();
+        backendAudioEl.currentTime = 0;
       }
       setMandoSpeaking(false);
     }
@@ -2708,6 +2831,8 @@
       const formData = new FormData();
       formData.append('audio', blob, 'recording.webm');
       formData.append('language', activeLanguage);
+      formData.append('answer_mode', answerMode);
+      formData.append('want_audio', 'false');
 
       setMandoState('uploading');
 

@@ -34,9 +34,9 @@ call those.
 
 ## Authentication
 
-None. The frontend never sends or sees a Sarvam or LLM API key — those live
-only in the backend's `.env` and are read from `app.config.CONFIG`, never
-serialized into any response.
+None. The frontend never sends or sees Sarvam, primary LLM, external LLM, or
+ElevenLabs keys. They live only in the backend's `.env`, are read from
+`app.config.CONFIG`, and are never serialized into a response.
 
 ## CORS
 
@@ -72,6 +72,19 @@ should fall back to displaying `answer` as text.
 ---
 
 ## POST /api/text/query
+
+### Product answer fields
+
+Text and voice requests accept `answer_mode` as `"fast"` or `"detailed"`
+(default). Both modes run retrieval and grounding. Responses include
+`answer_mode`, `answer_origin` (`corpus`, `goa_knowledge`, or
+`external`), and `external_verified`. External answers set
+`external_verified=false` and return no corpus or Goa source cards.
+
+Each source may include `source_name` and `source_url`. Runtime latency
+statistics appear under `latency.runtime` and remain separated by text/voice
+and fast/detailed. Until five successful samples exist, `collecting=true`
+and percentile values are null. No query or answer text is retained there.
 
 **Request** (`application/json`)
 
@@ -152,10 +165,12 @@ audio file directly.
 
 | field | type | required | notes |
 |---|---|---|---|
-| `audio` | file | yes | any format Sarvam STT accepts (e.g. WAV) |
+| `audio` | file | yes | an audio format accepted by the selected STT provider |
 | `language` | form field | no | default `"auto"` |
 | `voice` | form field | no | default `"male"`; `"male"` \| `"female"` |
 | `session_id` | form field | no | echoed back only |
+| `answer_mode` | form field | no | `"fast"` or `"detailed"` |
+| `want_audio` | form field | no | default `false`; opt in to backend TTS |
 
 **Response** (`200`, `application/json` by default) — same shape as
 `TextQueryResponse` plus:
@@ -175,21 +190,12 @@ audio file directly.
 }
 ```
 
-`audio_base64` is `null` when TTS is unavailable — check `guardrail.refused`
-and `answer` in that case; the text answer is still fully valid.
-`audio_unavailable_reason` explains WHY `audio_base64` is `null`, when audio
-was requested but couldn't be produced (e.g. Konkani, which has no Sarvam TTS
-voice). It is `null` whenever `audio_base64` is present, and also `null` when
-audio simply wasn't requested.
-
-**Refused voice queries still get spoken audio when TTS is available.** A
-refusal is a correct, successful outcome (`guardrail.refused: true`), and the
-same validated refusal text used for `answer` is synthesized into
-`audio_base64` exactly like a normal answer — the user hears the refusal
-instead of only reading it. Konkani never falls back to another language's
-voice: a Konkani refusal (or answer) returns `audio_base64: null` with
-`audio_unavailable_reason` set to why, and the refusal text itself is
-English (Konkani has no localised refusal copy either — also never Marathi).
+Backend TTS is opt-in with `want_audio=true`; the default is false to avoid
+spending speech credits for ordinary answers. The browser UI's Listen control
+reads the already displayed answer with SpeechSynthesis and never repeats STT,
+retrieval, or generation. If requested backend TTS is unavailable,
+`audio_base64` is null and `audio_unavailable_reason` explains why. Konkani
+never falls back to another language's TTS voice.
 
 **cURL**
 

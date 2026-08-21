@@ -12,7 +12,38 @@ honestly that he couldn't find enough to answer.
 Underneath the character is the actual submission: a multilingual RAG pipeline
 over `ai4bharat/MSMARCO-XI`, with a real orchestration harness, three layers of
 guardrails, and latency instrumented per stage — **137 ms P50 across 360
-measured requests**.
+measured retrieval/RAG-core requests (LLM generation and voice excluded)**.
+
+## Product answering and provenance
+
+MANDO keeps three answer origins separate. `corpus` means the normal
+MSMARCO-XI-backed runtime index supplied evidence and the answer passed
+grounding. `goa_knowledge` means the small, source-attributed corpus in
+`data/goa_knowledge.json` supplied evidence and the answer passed the same
+grounding verifier. `external` means general model knowledge was used only
+after both evidence stores were insufficient; it has no corpus citations, is
+not grounded against HHGoa, and returns `external_verified=false`.
+
+Primary grounded generation and external general-knowledge generation are
+independently configurable. The external path requires all three
+`EXTERNAL_LLM_API_KEY`, `EXTERNAL_LLM_BASE_URL`, and
+`EXTERNAL_LLM_MODEL` values and never reuses the primary or Sarvam key.
+Speech-to-text may use Sarvam or ElevenLabs via `STT_PROVIDER`.
+
+**Benchmark/evaluation remains MSMARCO-XI. Product knowledge is the curated Goa
+corpus.** The Goa passages are a separate product-only index and never enter
+MSMARCO-XI evaluation, calibration, or historical metrics.
+
+Public requests accept `answer_mode: "fast" | "detailed"` (default:
+`"detailed"`). Fast mode preserves retrieval and grounding while requesting a
+shorter answer with a smaller generation budget. Browser SpeechSynthesis reads
+the already displayed answer only after Listen is pressed. Voice queries do
+not request paid backend TTS by default; explicit `want_audio=true` preserves
+backend TTS compatibility.
+
+Runtime P50/P70 uses bounded in-memory windows separated by text/voice and
+fast/detailed. Values appear after five successful samples; before that the UI
+says “Collecting data.” Only latency numbers and categories are stored.
 
 Its most useful property is that several of its headline components lost to
 their baselines, and the repository says so: six chunking strategies were
@@ -656,9 +687,11 @@ app/
   config.py          env-driven config, no secrets in code
   language.py        en/hi/mr detection (the hi-vs-mr problem)
   stt/sarvam.py      Sarvam saaras STT + retries
+  stt/elevenlabs.py  Optional ElevenLabs Scribe STT adapter
   tts/sarvam_tts.py  Sarvam bulbul TTS + retries
   retrieval/         embeddings · bm25 · hybrid(RRF) · reranker · qdrant · loader
   generation/        persona (Mando) · generator (LLM + extractive fallback)
+  generation/external.py  independently configured external fallback
   guardrails/        input · relevance · grounding
 ingestion/
   dataset_info.py    shard-aware inspection (NOT naive streaming)
@@ -667,7 +700,7 @@ ingestion/
   chunk.py           six chunking strategies
   index.py           offline index build
 evaluation/          see the table above
-tests/               370 tests, including regressions for both silent bugs
+tests/               390 tests, including product/provider regressions
 frontend/index.html  the HHGoa/Mando UI -- self-contained (inline CSS/JS,
                      no build step), served by FastAPI at `/`. Text chat,
                      push-to-talk voice, language selector (auto/en/hi/mr/kok
