@@ -49,7 +49,12 @@ class Config:
     # See EXPERIMENTS.md E8.
     use_bm25: bool = _b("USE_BM25", False)
     use_dense: bool = _b("USE_DENSE", True)
-    cross_lingual: bool = _b("CROSS_LINGUAL", True)
+    # Cross-lingual retrieval routing was tested and REJECTED (EXPERIMENTS.md
+    # "Cross-lingual retrieval: a hypothesis we tested and disproved"). This
+    # flag is not read anywhere in app/ at runtime -- retained only so an old
+    # CROSS_LINGUAL env var doesn't error, defaulted to match what actually
+    # ships, not the disproved hypothesis.
+    cross_lingual: bool = _b("CROSS_LINGUAL", False)
 
     # -- stage timeouts (ms). Budget-driven, enforced by the harness. ------
     timeout_stt_ms: float = _f("TIMEOUT_STT_MS", 10_000)

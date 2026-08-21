@@ -647,7 +647,7 @@ Build the corpus and index (**offline, one time**):
 python ingestion/dataset_info.py --shards hin,mar --split validation
 python ingestion/download.py
 python ingestion/preprocess.py --limit 2000
-python ingestion/index.py --strategy hierarchical --model e5-small
+python ingestion/index.py --strategy fixed --model e5-small
 ```
 
 Serve:

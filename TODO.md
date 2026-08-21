@@ -7,64 +7,123 @@ Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
 
 ---
 
-## 🔴 NEXT ACTION — top up Sarvam credits (LLM AND TTS), then run DEMO_CHECKLIST.md
+## 🔴 STATUS — product knowledge + external-answer layer merged and verified offline
 
-**DONE this pass (Final Production Readiness):** full audit of judge
-wiring, streaming/SSE exception-safety, CORS, Docker, and a complete
-repository secret scan (not just the diff) -- everything checked was
-already correct, nothing new to fix. Added `DEMO_CHECKLIST.md` with an
-honest DONE/VERIFIED/BLOCKED-BY-CREDITS/NOT-LIVE-TESTED breakdown per item.
-No new live Sarvam calls made (account already known to be at zero
-credits). 377/377 tests still passing, no code changes this pass beyond
-docs. See PROJECT_STATE.md's "Final production readiness pass" section for
-the full list of what was checked and found already correct.
+**DONE this pass (ZIP merge + credit-safe release verification):** the
+supplied ZIP was byte-identical to the repo at `6e9b914` (already merged in
+an earlier session) -- nothing to merge. Verified via code reading + the
+full offline test suite that everything in that commit is wired correctly:
+independent `EXTERNAL_LLM_*` credentials (never reuse Sarvam/primary LLM
+key), the corpus/goa_knowledge/external `answer_origin` routing, Fast/
+Detailed modes that never skip grounding, ElevenLabs/Sarvam STT provider
+selection, and the runtime P50/P70 telemetry (bounded history, minimum
+sample count, no query content stored). Two small corrections applied:
+README's stale `--strategy hierarchical` index-build command corrected to
+`--strategy fixed` (matches `CHUNK_STRATEGY` production default), and the
+unused `CROSS_LINGUAL` config flag's default flipped from `True` to `False`
+(the hypothesis it names was tested and rejected -- see EXPERIMENTS.md;
+the flag is read nowhere in `app/` at runtime). Both pinned with new tests
+in `tests/test_config.py`. 392/392 tests passing (was 377 -- the merged
+commit's own `tests/test_product_answering.py` plus these 2 new tests).
+Full repository secret scan clean; `.env` confirmed untracked and ignored;
+no provider key names appear in `frontend/index.html`.
 
-**DONE in the prior pass (Final Hardening):**
-- [x] Fixed a real production bug: `app/main.py` never wired the
-      answerability judge into the deployed pipeline (it was documented as
-      the production shape since E15/E16 but only ever ran inside eval
-      scripts, never in the actual FastAPI app). Fixed + regression-tested.
-- [x] Full repo health audit: clean import, route registration, CORS,
-      secret leakage, stale Node-backend references, internal-field leakage
-      -- all clean, nothing else found.
-- [x] Frontend/backend contract re-verified: no fake fields, no fabricated
-      fallback, no exposed keys (carried over from the prior integration
-      pass, re-checked here).
-- [x] 377/377 tests passing. `.env` confirmed gitignored; diff secret-scanned
-      clean before commit.
+**NEXT ACTION for a future agent/session -- READ THIS FIRST:**
 
-**VERIFIED live (this pass):** the failure path itself. A real English and
-Hindi text query both got a clean, correctly-shaped refusal rather than a
-fabricated answer, because the Sarvam account's LLM credits are ALSO
-exhausted now (`HTTP 402 insufficient_quota_error` from
-`api.sarvam.ai/v1/chat/completions`, not just TTS as found in Phase 10). No
-crash, no leaked secret, no stack trace shown to the caller.
-
-**BLOCKED, external, not code:** live demo verification of a real grounded
-answer, voice round trip, or the 100+-query benchmark all need the Sarvam
-account topped up -- **both LLM and TTS credits are at zero.** Once restored:
-
-```
-python evaluation/voice_loop_benchmark.py --n 40 --repeat-every 8
-```
-
-- [ ] Top up Sarvam account credits (external action, not code) -- LLM and
-      TTS both, not just TTS as previously thought.
-- [ ] Re-run the benchmark above to reach n>=100 and get real hi/mr numbers
-      plus the cache-hit-rate evidence for the judge deployment decision.
-- [ ] Do a real live smoke test of `/api/text/query` (en/hi/mr/kok) and one
-      `/api/voice/query` round trip once credits are back, to confirm the
-      newly-wired judge behaves as measured in E15/E16 in production, not
-      just in eval scripts.
-- [ ] Update EXPERIMENTS.md and PROJECT_STATE.md with the completed numbers
-      once that run finishes.
-
-**OPTIONAL FUTURE POLISH (explicitly out of scope for this pass, per
-instruction):** frontend visual polish, animations, CSS refactor, file
-modularization -- to be done separately with other tools. Do not start this
-without a new explicit request.
+- [ ] Nothing is required before release. The items below are explicitly
+      OPTIONAL or BLOCKED, not blockers. Do not treat any of them as a
+      default next step -- see the credit-protection policy immediately
+      below before running ANYTHING that calls Sarvam, ElevenLabs, or an
+      external LLM.
 
 ---
+
+### [OPTIONAL / BLOCKED — DO NOT RUN AUTOMATICALLY]
+
+**Large Sarvam voice-loop benchmark (n>=100).**
+
+Reason: requires external API quota and can consume significant LLM/STT/TTS
+credits for a marginal demo improvement -- this was already tried once
+(Phase 10, `EXPERIMENTS.md` E20) and burned through the account's credits
+without reaching n=100. **The user has explicitly said this should no
+longer be considered a requirement for the project to be finished.**
+
+Existing benchmark/evaluation evidence (E1-E20) must be preserved exactly,
+never rerun to "refresh" it.
+
+Do NOT rerun this benchmark unless the user explicitly requests it in a
+future session.
+
+### [OPTIONAL LIVE PROVIDER VALIDATION]
+
+Use the offline/mocked regression suite (`python -m pytest tests/ -q`,
+392 tests) during normal development -- it already covers corpus, Goa
+knowledge, external fallback, Fast/Detailed, and STT-provider-selection
+behavior without spending any quota.
+
+Before a final demo/deployment, IF usable free quota is confirmed to exist
+(check for `HTTP 402`/quota-exhausted errors on ONE call first, do not
+assume), perform AT MOST:
+1. one corpus text query
+2. one Goa knowledge query ("What is the capital of Goa?")
+3. one external-fallback query (something outside corpus/Goa knowledge)
+4. one voice/STT query
+
+No repeated runs unless diagnosing a specific, confirmed defect.
+
+### [VOICE CREDIT POLICY]
+
+Normal "Listen" functionality in the frontend uses the browser's own
+`SpeechSynthesis` API on the answer already in memory -- it must NEVER
+re-run retrieval, call the LLM, call the external LLM, or call backend
+TTS (Sarvam/ElevenLabs). Verified in `tests/test_product_answering.py::
+test_frontend_listen_reuses_answer_and_paid_tts_is_not_default`.
+
+Backend TTS remains available ONLY for an explicitly requested voice/audio
+response (`want_audio=true` on `/api/voice/query`). Do not wire it into any
+other path.
+
+### [EXPERIMENT POLICY]
+
+Do NOT automatically rerun:
+- the 600-call answerability calibration (E15)
+- the n>=100 voice-loop benchmark (E20)
+- chunking experiments (E3-E7)
+- embedding experiments
+- MMR/reranking experiments
+- cross-lingual experiments (rejected -- see CROSS_LINGUAL note above)
+- historical generation benchmarks (E16-E18)
+
+The E-series experiment results in `EXPERIMENTS.md` are historical evidence
+and must remain unchanged. If a genuine regression is suspected, diagnose
+with the smallest possible offline/mocked test first.
+
+---
+
+**REQUIRED BEFORE RELEASE:** none currently known -- code, tests, and
+secret hygiene are all verified as of this pass.
+
+**BLOCKED BY EXTERNAL CREDENTIALS (informational, not a blocker for
+release):** the single quota-probe call made in this pass (one real
+`/api/text/query`, per the credit-safe smoke-test policy above) returned
+`HTTP 403 invalid_api_key_error: "Invalid or missing authentication
+credentials"` from `api.sarvam.ai/v1/chat/completions` -- **not** the
+`HTTP 402 insufficient_quota_error` seen in earlier passes. This suggests
+the `SARVAM_API_KEY` in `.env` may have been rotated/invalidated since the
+last working session, which is a DIFFERENT problem than running out of
+credits and needs a fresh key, not a top-up. No further live calls were
+made once this was seen (`EXTERNAL_LLM_*` and `ELEVENLABS_API_KEY` are also
+both unconfigured -- `CONFIG.has_external_llm` and the ElevenLabs STT path
+are both `False`, confirmed via the boolean flags only, no values printed).
+This blocks only live demo verification, not the release itself -- the
+code path for a provider outage/auth failure is itself tested and verified
+(see `test_product_answering.py` and `TestNoSecretExposure`/degradation
+tests elsewhere in the suite): the pipeline degraded correctly (clean
+`internal_error` refusal, no crash, no leaked credential).
+
+---
+
+## Historical — Sarvam credentials, then pipeline-level streaming
 
 ## Older — Sarvam credentials, then pipeline-level streaming
 
