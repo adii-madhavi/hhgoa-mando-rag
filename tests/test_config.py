@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import Config                               # noqa: E402
+from app.generation.llm_client import ChatClient            # noqa: E402
 
 
 class TestCrossLingualDefault:
@@ -34,3 +35,32 @@ class TestChunkStrategyDefault:
         `hierarchical` pick that a same-language-only comparison favoured.
         """
         assert Config().chunk_strategy == "fixed"
+
+
+class TestProviderCredentialIsolation:
+    def test_primary_never_reuses_sarvam_key(self, monkeypatch):
+        monkeypatch.delenv("LLM_API_KEY", raising=False)
+        monkeypatch.setenv("SARVAM_API_KEY", "stt-only-placeholder")
+        cfg = Config()
+        client = ChatClient(api_key=None)
+        try:
+            assert cfg.llm_api_key is None
+            assert cfg.has_llm is False
+            assert client.available is False
+        finally:
+            client.close()
+
+    def test_primary_and_external_credentials_remain_independent(self,
+                                                                 monkeypatch):
+        monkeypatch.setenv("LLM_API_KEY", "primary-placeholder")
+        monkeypatch.setenv("EXTERNAL_LLM_API_KEY", "external-placeholder")
+        monkeypatch.setenv("EXTERNAL_LLM_BASE_URL",
+                           "https://external.invalid/v1")
+        monkeypatch.setenv("EXTERNAL_LLM_MODEL", "external-model")
+        cfg = Config()
+        assert cfg.llm_api_key == "primary-placeholder"
+        assert cfg.external_llm_api_key == "external-placeholder"
+        assert cfg.external_llm_base_url == "https://external.invalid/v1"
+        assert cfg.external_llm_model == "external-model"
+        assert cfg.has_llm is True
+        assert cfg.has_external_llm is True

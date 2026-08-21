@@ -2638,6 +2638,7 @@
       const provenance = document.getElementById('answer-provenance');
       const badge = document.getElementById('answer-origin-badge');
       const warning = document.getElementById('external-warning');
+      const statusWarnings = [];
       const labels = {
         corpus: '📚 Corpus grounded',
         goa_knowledge: '🌴 Verified Goa knowledge',
@@ -2646,7 +2647,11 @@
       if (!refused && labels[data.answer_origin]) {
         provenance.hidden = false;
         badge.textContent = labels[data.answer_origin];
-        warning.textContent = isExternal ? 'Not verified against the HHGoa corpus.' : '';
+        if (isExternal) statusWarnings.push('Not verified against the HHGoa corpus.');
+        if (data.language_match === false) {
+          statusWarnings.push('Answer language may not match your selection.');
+        }
+        warning.textContent = statusWarnings.join(' ');
       } else {
         provenance.hidden = true;
         badge.textContent = '';

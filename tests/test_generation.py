@@ -272,6 +272,27 @@ class TestLanguage:
         g.generate("q", EVIDENCE, "mr")
         assert "Marathi" in g.client.calls[0][0]["content"]
 
+    @pytest.mark.parametrize("lang,required,forbidden", [
+        ("en", "Reply only in English", "Do not use Hindi or Marathi"),
+        ("hi", "Reply only in Hindi", "Do not use Marathi"),
+        ("mr", "Reply only in Marathi", "Do not use Hindi"),
+    ])
+    def test_evaluated_languages_have_strict_separation(self, lang, required,
+                                                        forbidden):
+        prompt = system_prompt(lang)
+        assert required in prompt and forbidden in prompt
+
+    def test_corrective_retry_prompt_preserves_facts_and_evidence(self):
+        g = generator_with([gen_json(answer="कॉर्पोरेशन ही कंपनी आहे.")])
+        g.correct_language("q", EVIDENCE, "mr", "निगम एक कंपनी है।")
+        prompt = g.client.calls[0][1]["content"]
+        assert "CORRECTIVE LANGUAGE RETRY" in prompt
+        assert "Do not add, remove, or change facts" in prompt
+        assert "same numbered sources" in prompt
+        assert "निगम एक कंपनी है।" in prompt
+        assert "q" in prompt
+        assert EVIDENCE[0] in prompt and EVIDENCE[1] in prompt
+
 
 # --------------------------------------------------------------------------
 # 7. Verdict cache (async judge support)

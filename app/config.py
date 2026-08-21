@@ -72,8 +72,7 @@ class Config:
     sarvam_api_key: str | None = field(
         default_factory=lambda: os.environ.get("SARVAM_API_KEY"))
     llm_api_key: str | None = field(
-        default_factory=lambda: os.environ.get("LLM_API_KEY")
-        or os.environ.get("SARVAM_API_KEY"))
+        default_factory=lambda: os.environ.get("LLM_API_KEY"))
     llm_model: str = os.environ.get("LLM_MODEL", "sarvam-105b-conversations")
     llm_base_url: str = os.environ.get("LLM_BASE_URL",
                                        "https://api.sarvam.ai/v1")

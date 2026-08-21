@@ -98,6 +98,15 @@ def _language_clause(lang: str) -> str:
               f"in {language}, so answer in it — the same warmth, just in "
               f"their language. Do not translate the question back to them or "
               f"mention what language you are using.")
+    strict = {
+        "en": "Reply only in English. Do not use Hindi or Marathi.",
+        "hi": "Reply only in Hindi. Do not use Marathi.",
+        "mr": "Reply only in Marathi. Do not use Hindi.",
+    }.get(lang)
+    if strict:
+        clause += (
+            f"\n\n{strict} This language choice is authoritative for the "
+            "entire answer.")
     if not has_capability(lang, "benchmark"):
         clause += (
             "\n\nIf you cannot answer naturally and accurately in "

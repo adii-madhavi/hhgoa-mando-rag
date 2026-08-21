@@ -79,6 +79,7 @@ def to_text_response(resp: RAGResponse, session_id: str | None,
         answer_mode=resp.answer_mode.value,
         answer_origin=(resp.answer_origin.value if resp.answer_origin else None),
         external_verified=resp.external_verified,
+        language_match=resp.language_match,
     )
 
 

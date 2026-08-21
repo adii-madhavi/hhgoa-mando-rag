@@ -184,7 +184,8 @@ class LLMGenerator:
         return self.client.model
 
     def generate(self, query: str, evidence_texts: list[str], lang: str,
-                 history=None, answer_mode: str = "detailed") -> Generation:
+                 history=None, answer_mode: str = "detailed",
+                 correction_from: str | None = None) -> Generation:
         if not self.client.available:
             raise GenerationError("no LLM API key configured")
         if not evidence_texts:
@@ -194,11 +195,23 @@ class LLMGenerator:
         mode_instruction = ("Give one direct sentence and no preamble."
                             if answer_mode == "fast" else
                             "Give a useful concise answer; include detail only when supported.")
+        user_content = (
+            build_user_prompt(sanitize_for_prompt(query), evidence_texts,
+                              history)
+            + f"\n\nAnswer mode: {answer_mode}. {mode_instruction}")
+        if correction_from is not None:
+            language = {"en": "English", "hi": "Hindi",
+                        "mr": "Marathi"}.get(lang, lang)
+            user_content += (
+                f"\n\nCORRECTIVE LANGUAGE RETRY: Rewrite the same grounded "
+                f"answer only in {language}. Do not add, remove, or change "
+                "facts. Use only the same numbered sources and keep the same "
+                "meaning. Previous grounded answer: "
+                f"{sanitize_for_prompt(correction_from, max_chars=4000)}")
+
         messages = [
             {"role": "system", "content": system_prompt(lang, self.persona)},
-            {"role": "user", "content": build_user_prompt(
-                sanitize_for_prompt(query), evidence_texts, history)
-                + f"\n\nAnswer mode: {answer_mode}. {mode_instruction}"},
+            {"role": "user", "content": user_content},
         ]
 
         def _validate(payload: dict) -> GenerationOutput:
@@ -241,6 +254,13 @@ class LLMGenerator:
             attempts=meta.http_attempts,
             schema_attempts=meta.schema_attempts,
         )
+
+    def correct_language(self, query: str, evidence_texts: list[str], lang: str,
+                         previous_answer: str, history=None,
+                         answer_mode: str = "detailed") -> Generation:
+        return self.generate(
+            query, evidence_texts, lang, history=history,
+            answer_mode=answer_mode, correction_from=previous_answer)
 
     def generate_stream(self, query: str, evidence_texts: list[str], lang: str,
                         history=None, deadline_s: float | None = None):

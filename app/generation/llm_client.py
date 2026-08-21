@@ -97,8 +97,7 @@ class ChatClient:
     def __init__(self, api_key: str | None = None, model: str | None = None,
                  base_url: str | None = None, timeout_s: float = 15.0,
                  max_http_attempts: int = 5, retry_deadline_s: float = 20.0):
-        self.api_key = api_key or os.environ.get("LLM_API_KEY") \
-            or os.environ.get("SARVAM_API_KEY")
+        self.api_key = api_key or os.environ.get("LLM_API_KEY")
         self.base_url = (base_url or os.environ.get("LLM_BASE_URL")
                          or "https://api.sarvam.ai/v1").rstrip("/")
         self.model = model or os.environ.get("LLM_MODEL", "sarvam-105b-conversations")

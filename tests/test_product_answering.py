@@ -152,6 +152,22 @@ def test_percentiles_require_multiple_samples_and_stay_separated():
     assert len(tracker._samples[("text", "fast")]) == 3
 
 
+def test_demo_percentiles_unlock_at_five_with_strict_bucket_separation():
+    tracker = LatencyTracker()
+    for value in (100, 200, 300, 400):
+        summary = tracker.record("text", "fast", value)
+        assert summary["collecting"] and summary["p50_ms"] is None
+    ready = tracker.record("text", "fast", 500)
+    assert not ready["collecting"]
+    assert ready["category"] == "text_fast"
+    assert ready["p50_ms"] == 300 and ready["p70_ms"] == 400
+    for channel, mode in (("text", "detailed"), ("voice", "fast"),
+                          ("voice", "detailed")):
+        assert tracker.snapshot(channel, mode)["samples"] == 0
+    frontend = open("frontend/index.html", encoding="utf-8").read()
+    assert "Collecting data" in frontend and "P50" in frontend and "P70" in frontend
+
+
 def test_frontend_listen_reuses_answer_and_paid_tts_is_not_default():
     text = open("frontend/index.html", encoding="utf-8").read()
     toggle = text[text.index("function toggleMandoSpeech"):

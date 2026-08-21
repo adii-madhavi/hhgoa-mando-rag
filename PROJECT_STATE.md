@@ -1,35 +1,43 @@
 # MANDO — Project State
 
-**Status: Phase 3 COMPLETE + streaming (E18) + public API v1 layer + Phase 10 hardening (E20, partial).**
-**Generation P50 4.3s (E17); streaming TTFV P50 391ms gives ~10.7x perceived-latency win (E18).**
-**Public API contract live at /api/* (docs/api-v1.md) as a thin adapter -- internal pipeline untouched.**
-**Refusals now speak; hard deadlines added to every voice-path network call; voice-loop benchmark BLOCKED at n=7/120 by Sarvam account credit exhaustion -- see E20.**
-**Frontend (Google AI Studio export) integrated at frontend/index.html, served by FastAPI at "/"; real integration bugs fixed (transcript field, fallback-question bug, language codes) -- see the "Frontend integration" commit.**
-**FINAL HARDENING PASS (this task): found and fixed a real production bug -- app.main's deployed pipeline never wired the answerability judge despite it being the documented production shape (E15/E16/E20). Fixed; 377 tests pass. Sarvam account now has ZERO credits for BOTH TTS and LLM generation (HTTP 402 on every real call) -- live demo verification beyond schema/failure-path checks is blocked until credits are topped up.**
-**FINAL PRODUCTION READINESS PASS: full audit of judge wiring, streaming safety, SSE exception-safety, CORS, Docker, and secrets -- all already correct, nothing else found. See "Final production readiness pass" below and DEMO_CHECKLIST.md. 377/377 tests, no code changes needed beyond this doc + checklist.**
-**PRODUCT KNOWLEDGE LAYER (commit 6e9b914, verified this pass): independent external-LLM fallback (own EXTERNAL_LLM_* credentials, never reusing Sarvam/primary), a curated Goa-knowledge retrieval layer separate from MSMARCO-XI (answer_origin: corpus/goa_knowledge/external), Fast/Detailed answer modes that never skip grounding, ElevenLabs/Sarvam STT provider selection, and bounded runtime P50/P70 telemetry. 392/392 tests. Two small doc/config corrections applied: README's index-build command now says `--strategy fixed` (was stale `hierarchical`); `CROSS_LINGUAL` config default flipped to `False` (rejected hypothesis, unused at runtime).**
-**CREDENTIAL STATUS (this pass): a single quota-probe call returned `HTTP 403 invalid_api_key_error`, not the earlier `402 insufficient_quota_error` -- the SARVAM_API_KEY may need to be regenerated, not just topped up. See TODO.md.**
-Last updated: 2026-08-21 · Deadline: 2026-08-22 23:59
-Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`, pushed)
+## Current status — final correctness and demo-readiness pass
 
-`PROJECT_STATE.md` and `TODO.md` are the source of truth. Update both after
-every major task.
+- Feature set is frozen. Baseline: `627316b` on `main`; this document is
+  included in the successor correctness commit.
+- Explicit `en`/`hi`/`mr` selection is authoritative. STT language_code
+  is second; heuristic detection is used only when neither stronger signal
+  exists.
+- A confidently wrong grounded answer receives at most one corrective rewrite
+  over the same query/evidence, then the final answer is grounded again.
+  Konkani's existing honest fallback behavior is unchanged.
+- Primary generation is independently configured by `LLM_API_KEY`,
+  `LLM_BASE_URL`, and `LLM_MODEL`. External fallback uses only
+  `EXTERNAL_LLM_*`.
+- STT is selectable with `STT_PROVIDER=sarvam|elevenlabs`. Sarvam is optional;
+  normal frontend Listen reuses the current answer through browser
+  `SpeechSynthesis` and makes no paid provider call.
+- Runtime P50/P70 needs five successful samples in one isolated channel/mode
+  bucket; text/voice and Fast/Detailed samples never mix.
+- Offline verification: **416/416 tests passed**.
+- Bounded live verification: **5/5 user-level requests passed** on 2026-08-22:
+  Groq corpus generation, curated Goa knowledge (Panaji + real source), Gemini
+  external fallback (unverified, zero corpus evidence), explicit Marathi
+  (detected Marathi), and ElevenLabs STT voice.
+- Current code blocker: none. Deployment still requires operator-managed
+  secrets and the normal deployment/demo checklist.
 
-**Frontend is out of scope for backend work from this point on.** It will be
-built separately against `docs/api-v1.md`. Do not create/modify frontend/,
-React/Next.js, HTML, CSS, or Mando visual assets from the backend side.
+Last updated: 2026-08-22 · Deadline: 2026-08-22 23:59
+Repo: https://github.com/adii-madhavi/hhgoa-mando-rag (branch `main`)
 
-Phases 1-3 complete. Voice pipeline (Sarvam STT -> RAGPipeline -> guarded
-generation -> Sarvam TTS) is BUILT, MOCK-TESTED (39 tests), and NOW LIVE-
-VALIDATED end-to-end with real Sarvam + LLM calls (3 fixed queries + 2 voice
-checks, n=1 each -- not a benchmark). 2/3 languages produced a grounded,
-audible answer; the numeric grounding gate correctly refused the other 2
-query variants when the LLM volunteered an unsupported digit. UI remains out
-of scope for backend work.
+The older readiness snapshots and E-series measurements below are preserved as
+historical evidence. Where they mention exhausted Sarvam credits or older test
+counts, they describe that earlier pass and are not the current provider state.
 
 ---
 
-## One-line status
+---
+
+## Historical status snapshot (superseded by current status above)
 
 A measured multilingual RAG system over MSMARCO-XI with grounded Mando
 generation live in English, Hindi and Marathi. **392 tests pass.**
@@ -40,7 +48,7 @@ for a voice product.
 
 ---
 
-## Blockers
+## Historical blockers recorded during E18-E20
 
 | blocker | blocks | effect |
 |---|---|---|
@@ -356,7 +364,7 @@ frontend/index.html      push-to-talk UI with live stage breakdown
 
 ---
 
-## Resume instructions
+## Historical resume instructions — DO NOT RUN AUTOMATICALLY
 
 ```bash
 # 1. add credentials

@@ -55,6 +55,7 @@ def _stream_body(payload: TextQueryResponse):
         "answer_mode": payload.answer_mode,
         "answer_origin": payload.answer_origin,
         "external_verified": payload.external_verified,
+        "language_match": payload.language_match,
     })
     if payload.guardrail.refused or not payload.answer:
         yield _sse_frame("done", {"answer": payload.answer,
@@ -70,6 +71,7 @@ def _stream_body(payload: TextQueryResponse):
         "answer_mode": payload.answer_mode,
         "answer_origin": payload.answer_origin,
         "external_verified": payload.external_verified,
+        "language_match": payload.language_match,
     })
 
 

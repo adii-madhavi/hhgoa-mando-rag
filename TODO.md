@@ -1,128 +1,69 @@
 # MANDO — TODO
 
-Source of truth alongside `PROJECT_STATE.md`. Update both after every major task.
-Deadline: 2026-08-22 23:59.
+Source of truth alongside `PROJECT_STATE.md`. Feature work is frozen after
+the 2026-08-22 final correctness pass.
 
-Phases 1-3 COMPLETE. `LLM_API_KEY` present and working.
+## CURRENT STATUS
 
----
+- Baseline for this pass: `627316b` on `main`.
+- Explicit language selection is authoritative; STT language is second; text
+  heuristics are used only for `auto` without an STT language code.
+- A confidently wrong grounded en/hi/mr answer receives one corrective rewrite
+  with identical query/evidence, followed by a second grounding check.
+- Primary `LLM_*`, external `EXTERNAL_LLM_*`, and STT credentials are
+  independent. STT supports Sarvam or ElevenLabs.
+- Normal frontend Listen uses browser `SpeechSynthesis`; Sarvam TTS is
+  optional and only used for explicitly requested backend audio.
+- Runtime percentiles require five samples in one isolated
+  `text_fast`/`text_detailed`/`voice_fast`/`voice_detailed` bucket.
+- Offline gate: 416/416 tests passed.
+- Bounded live smoke: 5/5 user-level requests succeeded (corpus, Goa knowledge,
+  independent external fallback, Marathi, and ElevenLabs STT voice).
+- Final tracked-file secret scan passed; `.env` is ignored and untracked, and
+  the frontend contains no provider credential markers.
+- The targeted correctness commit is ready for `main`; no code task remains.
 
-## 🔴 STATUS — product knowledge + external-answer layer merged and verified offline
+## REQUIRED BEFORE RELEASE
 
-**DONE this pass (ZIP merge + credit-safe release verification):** the
-supplied ZIP was byte-identical to the repo at `6e9b914` (already merged in
-an earlier session) -- nothing to merge. Verified via code reading + the
-full offline test suite that everything in that commit is wired correctly:
-independent `EXTERNAL_LLM_*` credentials (never reuse Sarvam/primary LLM
-key), the corpus/goa_knowledge/external `answer_origin` routing, Fast/
-Detailed modes that never skip grounding, ElevenLabs/Sarvam STT provider
-selection, and the runtime P50/P70 telemetry (bounded history, minimum
-sample count, no query content stored). Two small corrections applied:
-README's stale `--strategy hierarchical` index-build command corrected to
-`--strategy fixed` (matches `CHUNK_STRATEGY` production default), and the
-unused `CROSS_LINGUAL` config flag's default flipped from `True` to `False`
-(the hypothesis it names was tested and rejected -- see EXPERIMENTS.md;
-the flag is read nowhere in `app/` at runtime). Both pinned with new tests
-in `tests/test_config.py`. 392/392 tests passing (was 377 -- the merged
-commit's own `tests/test_product_answering.py` plus these 2 new tests).
-Full repository secret scan clean; `.env` confirmed untracked and ignored;
-no provider key names appear in `frontend/index.html`.
+- [ ] Deployment operator: configure the same independently scoped provider
+      secrets in the deployment environment and run `DEMO_CHECKLIST.md`.
 
-**NEXT ACTION for a future agent/session -- READ THIS FIRST:**
+No additional code feature is currently required before release.
 
-- [ ] Nothing is required before release. The items below are explicitly
-      OPTIONAL or BLOCKED, not blockers. Do not treat any of them as a
-      default next step -- see the credit-protection policy immediately
-      below before running ANYTHING that calls Sarvam, ElevenLabs, or an
-      external LLM.
+## OPTIONAL
 
----
+- True mid-generation pipeline/SSE streaming. The current public SSE contract
+  word-chunks an already completed, fully guarded answer.
+- Additional curated Goa knowledge entries with verified source metadata.
+- Additional visual/browser QA when the in-app browser ACL issue is resolved.
+- Any live provider smoke beyond the five-request pass above. Do not run
+  automatically and do not use it to populate latency percentiles.
 
-### [OPTIONAL / BLOCKED — DO NOT RUN AUTOMATICALLY]
+## BLOCKED BY EXTERNAL PROVIDER
 
-**Large Sarvam voice-loop benchmark (n>=100).**
+None in the latest bounded smoke pass. Groq primary generation, Gemini external
+fallback, and ElevenLabs STT each returned a successful live response on
+2026-08-22. If a future provider returns 401/402/403/404/429, model-not-found,
+quota, invalid-key, or rate-limit errors, stop that provider immediately and
+record the external blocker here without printing credentials.
 
-Reason: requires external API quota and can consume significant LLM/STT/TTS
-credits for a marginal demo improvement -- this was already tried once
-(Phase 10, `EXPERIMENTS.md` E20) and burned through the account's credits
-without reaching n=100. **The user has explicitly said this should no
-longer be considered a requirement for the project to be finished.**
+## HISTORICAL / DO NOT RERUN
 
-Existing benchmark/evaluation evidence (E1-E20) must be preserved exactly,
-never rerun to "refresh" it.
+The following are preserved evidence, not release tasks. They are optional and
+must never run automatically:
 
-Do NOT rerun this benchmark unless the user explicitly requests it in a
-future session.
-
-### [OPTIONAL LIVE PROVIDER VALIDATION]
-
-Use the offline/mocked regression suite (`python -m pytest tests/ -q`,
-392 tests) during normal development -- it already covers corpus, Goa
-knowledge, external fallback, Fast/Detailed, and STT-provider-selection
-behavior without spending any quota.
-
-Before a final demo/deployment, IF usable free quota is confirmed to exist
-(check for `HTTP 402`/quota-exhausted errors on ONE call first, do not
-assume), perform AT MOST:
-1. one corpus text query
-2. one Goa knowledge query ("What is the capital of Goa?")
-3. one external-fallback query (something outside corpus/Goa knowledge)
-4. one voice/STT query
-
-No repeated runs unless diagnosing a specific, confirmed defect.
-
-### [VOICE CREDIT POLICY]
-
-Normal "Listen" functionality in the frontend uses the browser's own
-`SpeechSynthesis` API on the answer already in memory -- it must NEVER
-re-run retrieval, call the LLM, call the external LLM, or call backend
-TTS (Sarvam/ElevenLabs). Verified in `tests/test_product_answering.py::
-test_frontend_listen_reuses_answer_and_paid_tts_is_not_default`.
-
-Backend TTS remains available ONLY for an explicitly requested voice/audio
-response (`want_audio=true` on `/api/voice/query`). Do not wire it into any
-other path.
-
-### [EXPERIMENT POLICY]
-
-Do NOT automatically rerun:
-- the 600-call answerability calibration (E15)
-- the n>=100 voice-loop benchmark (E20)
+- 600-call answerability calibration (E15)
+- n>=100 voice-loop benchmark (E20)
 - chunking experiments (E3-E7)
 - embedding experiments
 - MMR/reranking experiments
-- cross-lingual experiments (rejected -- see CROSS_LINGUAL note above)
-- historical generation benchmarks (E16-E18)
+- cross-lingual experiments
+- historical generation/streaming benchmarks (E16-E18)
 
-The E-series experiment results in `EXPERIMENTS.md` are historical evidence
-and must remain unchanged. If a genuine regression is suspected, diagnose
-with the smallest possible offline/mocked test first.
-
----
-
-**REQUIRED BEFORE RELEASE:** none currently known -- code, tests, and
-secret hygiene are all verified as of this pass.
-
-**BLOCKED BY EXTERNAL CREDENTIALS (informational, not a blocker for
-release):** the single quota-probe call made in this pass (one real
-`/api/text/query`, per the credit-safe smoke-test policy above) returned
-`HTTP 403 invalid_api_key_error: "Invalid or missing authentication
-credentials"` from `api.sarvam.ai/v1/chat/completions` -- **not** the
-`HTTP 402 insufficient_quota_error` seen in earlier passes. This suggests
-the `SARVAM_API_KEY` in `.env` may have been rotated/invalidated since the
-last working session, which is a DIFFERENT problem than running out of
-credits and needs a fresh key, not a top-up. No further live calls were
-made once this was seen (`EXTERNAL_LLM_*` and `ELEVENLABS_API_KEY` are also
-both unconfigured -- `CONFIG.has_external_llm` and the ElevenLabs STT path
-are both `False`, confirmed via the boolean flags only, no values printed).
-This blocks only live demo verification, not the release itself -- the
-code path for a provider outage/auth failure is itself tested and verified
-(see `test_product_answering.py` and `TestNoSecretExposure`/degradation
-tests elsewhere in the suite): the pipeline degraded correctly (clean
-`internal_error` refusal, no crash, no leaked credential).
+Use mocked/offline regressions first. Any explicitly authorized live
+verification remains a small smoke test only.
 
 ---
-
 ## Historical — Sarvam credentials, then pipeline-level streaming
 
 ## Older — Sarvam credentials, then pipeline-level streaming

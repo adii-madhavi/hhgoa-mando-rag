@@ -123,10 +123,13 @@ class TextQueryResponse(BaseModel):
     answer_mode: str = "detailed"
     answer_origin: str | None = None
     external_verified: bool | None = None
+    language_match: bool | None = Field(
+        default=None, description="False only when a confident answer-language "
+        "mismatch remains after the single corrective retry.")
 
 
 class VoiceQueryResponse(TextQueryResponse):
-    transcript: str = Field(description="What Sarvam STT heard.")
+    transcript: str = Field(description="What the configured STT provider heard.")
     audio_base64: str | None = Field(
         default=None,
         description="Base64 WAV of the spoken answer. Null if TTS is "

@@ -528,22 +528,6 @@ class RAGPipeline:
                                 lang, "generator returned an empty answer",
                                 request=request, lat=lat, started=started)
 
-        # SAME-LANGUAGE ENFORCEMENT. The persona is instructed to reply in the
-        # user's language, but instruction is not verification. We detect the
-        # answer's language and record a mismatch. It is a WARNING, not a
-        # refusal: a correct answer in the wrong language is still useful, and
-        # refusing it would trade a real answer for a cosmetic failure. The
-        # flag lets the UI and evaluation see it.
-        try:
-            detected = detect_language(gen.answer)
-            resp.language_match = (detected.lang == lang
-                                   or detected.confidence < 0.5)
-            if not resp.language_match:
-                resp.warnings.append(
-                    f"answer language {detected.lang!r} does not match "
-                    f"requested {lang!r}")
-        except Exception:
-            resp.language_match = None
 
         # The model may itself report the sources were inadequate. Trust it --
         # it read them.
@@ -579,6 +563,88 @@ class RAGPipeline:
             return self._refuse(resp, RefusalReason.ungrounded_answer, lang,
                                 grounding.detail,
                                 request=request, lat=lat, started=started)
+
+        # Language adherence is checked only after the first answer has passed
+        # grounding. A confident mismatch gets one corrective generation call
+        # over the identical query and evidence; retrieval, reranking, the
+        # answerability judge, and external fallback are never re-entered.
+        if lang in ("en", "hi", "mr"):
+            try:
+                detected = detect_language(gen.answer)
+                resp.language_match = (
+                    detected.lang == lang or detected.confidence < 0.75)
+            except Exception:
+                resp.language_match = None
+
+            if resp.language_match is False:
+                corrector = getattr(self.generator, "correct_language", None)
+                if not callable(corrector):
+                    resp.warnings.append(
+                        f"answer language {detected.lang!r} does not match "
+                        f"requested {lang!r}; corrective retry unavailable")
+                else:
+                    try:
+                        with Timer(lat, Stage.generation) as correction_timer:
+                            corrected = corrector(
+                                query, evidence_texts, lang, gen.answer,
+                                history=request.context,
+                                answer_mode=request.answer_mode.value)
+                            correction_timer.attempts = corrected.attempts
+                    except Exception as exc:
+                        resp.warnings.append(
+                            f"answer language {detected.lang!r} does not match "
+                            f"requested {lang!r}; corrective retry failed: "
+                            f"{type(exc).__name__}")
+                    else:
+                        if not corrected.answer.strip() or not corrected.sufficient:
+                            return self._refuse(
+                                resp, RefusalReason.insufficient_evidence, lang,
+                                "corrective language generation was unusable",
+                                request=request, lat=lat, started=started)
+
+                        with Timer(lat, Stage.grounding):
+                            corrected_grounding = verify_grounding(
+                                corrected.answer, evidence_texts, self.embedder,
+                                self.grounding_thresholds,
+                                evidence_vectors=ev_vectors)
+                        resp.grounded = corrected_grounding.passed
+                        resp.grounding_score = (
+                            corrected_grounding.semantic_score)
+                        if (self.cfg.enforce_grounding
+                                and not corrected_grounding.passed):
+                            return self._refuse(
+                                resp, RefusalReason.ungrounded_answer, lang,
+                                corrected_grounding.detail,
+                                request=request, lat=lat, started=started)
+
+                        gen = corrected
+                        resp.sources_used = list(
+                            getattr(gen, "sources_used", []) or [])
+                        resp.invalid_sources = list(
+                            getattr(gen, "invalid_sources", []) or [])
+                        if resp.invalid_sources:
+                            resp.warnings.append(
+                                "corrective generator cited unknown sources "
+                                f"{resp.invalid_sources}; dropped")
+                        try:
+                            final_detected = detect_language(gen.answer)
+                            resp.language_match = (
+                                final_detected.lang == lang
+                                or final_detected.confidence < 0.75)
+                            if not resp.language_match:
+                                resp.warnings.append(
+                                    f"answer language "
+                                    f"{final_detected.lang!r} still does not "
+                                    f"match requested {lang!r} after one "
+                                    "corrective retry")
+                        except Exception:
+                            resp.language_match = None
+        else:
+            # Konkani remains intentionally unclassified: the heuristic only
+            # supports en/hi/mr, so treating its output as Hindi or Marathi
+            # would break the existing honesty behavior.
+            resp.language_match = None
+
 
         resp.answer = gen.answer
         resp.ok = True

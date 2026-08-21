@@ -78,8 +78,10 @@ should fall back to displaying `answer` as text.
 Text and voice requests accept `answer_mode` as `"fast"` or `"detailed"`
 (default). Both modes run retrieval and grounding. Responses include
 `answer_mode`, `answer_origin` (`corpus`, `goa_knowledge`, or
-`external`), and `external_verified`. External answers set
-`external_verified=false` and return no corpus or Goa source cards.
+`external`), `external_verified`, and `language_match`. A false
+`language_match` means one corrective language rewrite was attempted but a
+confident mismatch remains. External answers set `external_verified=false`
+and return no corpus or Goa source cards.
 
 Each source may include `source_name` and `source_url`. Runtime latency
 statistics appear under `latency.runtime` and remain separated by text/voice

@@ -23,9 +23,10 @@ We score marker hits for each language and fall back to Hindi (the higher-prior
 language) when a Devanagari string yields no markers at all, reporting LOW
 confidence so the caller can prefer Sarvam's own language_code.
 
-Precedence at runtime: Sarvam STT returns a detected language_code, and for the
-VOICE path that wins -- it hears phonology, we only see text. This detector is
-the fallback for the text path (benchmarks, typed input) and the cross-check.
+Precedence at runtime is strict: an explicit user selection wins, then the STT
+provider's language_code, and this text heuristic is used only when neither
+stronger signal exists. Answer-language detection is a verification signal;
+it never changes the resolved request language.
 
 Accuracy is measured on 2,000 parallel query triples in
 evaluation/language_detection.py -- not asserted here.
@@ -164,8 +165,8 @@ def resolve_language(requested: str, transcript: str,
 
     1. An explicit user choice in the UI is authoritative -- if someone picks
        Marathi, we answer in Marathi even if the text looks Hindi.
-    2. Sarvam's STT language_code, which is derived from audio.
-    3. Our text heuristic.
+    2. The configured STT provider's language_code, derived from audio.
+    3. Our text heuristic, only when neither stronger signal exists.
     """
     if requested and requested != "auto":
         return LanguageResult(requested, 1.0, "user_selected", {})
@@ -173,13 +174,6 @@ def resolve_language(requested: str, transcript: str,
     if stt_lang:
         code = stt_lang.split("-")[0].lower()
         if code in ("en", "hi", "mr"):
-            text_guess = detect_language(transcript)
-            # Sarvam cannot distinguish hi/mr from audio perfectly either; if
-            # our markers disagree CONFIDENTLY, trust the text.
-            if (text_guess.lang != code and text_guess.confidence >= 0.75
-                    and {text_guess.lang, code} == {"hi", "mr"}):
-                return LanguageResult(text_guess.lang, text_guess.confidence,
-                                      "text_override_stt", text_guess.scores)
-            return LanguageResult(code, 0.9, "sarvam_stt", {})
+            return LanguageResult(code, 0.9, "stt_language_code", {})
 
     return detect_language(transcript)

@@ -80,9 +80,9 @@ hurt and ships disabled; cross-lingual routing was tested and refuted.
 ```
 🎙  user speaks (en / hi / mr)
       ↓
-    Sarvam STT  (saaras:v3)
+    Sarvam or ElevenLabs STT  (selected by STT_PROVIDER)
       ↓
-    language resolution   — UI choice > Sarvam's audio-derived code > text heuristic
+    language resolution   — explicit choice > STT language_code > text heuristic
       ↓
     input guardrail       — empty · unintelligible · unsafe · prompt injection
       ↓
@@ -99,7 +99,7 @@ hurt and ships disabled; cross-lingual routing was tested and refuted.
       ↓
     grounding verifier    — numeric + semantic support; FAIL discards the answer
       ↓
-    Sarvam TTS  (bulbul:v3)
+    optional Sarvam TTS for explicit backend audio requests
       ↓
 🔊  Mando speaks
 ```
@@ -153,7 +153,7 @@ otherwise would be a lie. See `app/pipeline.py`.
 | Orchestration harness | ✅ structured I/O, retries, request IDs, per-stage latency |
 | Language detection | ✅ 95.4% overall, **86.6% Marathi** — the weak spot, quantified |
 | Adversarial guardrails | ✅ **7/7** — injection blocked in all three languages |
-| Sarvam STT / TTS | ⚠️ **implemented and verified against Sarvam's API docs, but not yet exercised against the live API** — no key at time of writing |
+| STT / backend TTS | ✅ Sarvam or ElevenLabs STT selectable; ElevenLabs live-smoked. Sarvam TTS is optional and separately credentialed. |
 | Mando persona generation | ⚠️ **requires an LLM key.** Without one the system uses a grounded extractive fallback (verbatim evidence sentences — cannot hallucinate, but no persona) |
 | Konkani | 🟡 **product language, not a benchmark language** — speakable input, no labelled data, no TTS voice; see below |
 

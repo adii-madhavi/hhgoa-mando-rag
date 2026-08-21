@@ -29,7 +29,7 @@ INTERNAL_FIELD_NAMES = (
     "judge_reason", "judge_supporting_ids", "judge_cache_hit",
     "judge_async_dispatched", "retrieval_confidence", "grounding_score",
     "generator", "persona", "sources_used", "invalid_sources",
-    "language_match", "rewritten_query", "language_confidence",
+    "rewritten_query", "language_confidence",
     "request_id", "warnings",
 )
 
@@ -83,7 +83,7 @@ class TestSchemaIsolation:
                         json={"query": "test query", "language": "en"})
         body = r.json()
         for key in ("answer", "sources", "language", "latency",
-                   "guardrail", "session_id"):
+                   "guardrail", "session_id", "language_match"):
             assert key in body
         assert set(body["latency"].keys()) >= \
             {"retrieval_ms", "generation_ms", "total_ms", "streamed"}
