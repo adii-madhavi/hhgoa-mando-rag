@@ -1,6 +1,6 @@
 # CPU-only image. torch's CPU wheel is ~200 MB vs ~2.5 GB for the CUDA build,
 # and every measurement in this project was taken on CPU anyway.
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
