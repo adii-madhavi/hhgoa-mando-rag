@@ -26,7 +26,7 @@ COPY app/ app/
 COPY ingestion/ ingestion/
 COPY evaluation/ evaluation/
 COPY frontend/ frontend/
-
+COPY data/ data/
 # data/ (index + processed corpus) is mounted, not copied: it is build output,
 # not source, and baking a multi-GB index into the image is wasteful.
 
