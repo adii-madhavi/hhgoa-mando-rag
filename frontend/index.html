@@ -174,7 +174,7 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      padding-bottom: calc(var(--bottom-nav-height) + var(--composer-height) + var(--safe-bottom) + 16px);
+      padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
     }
 
     /* ==========================================================================
@@ -1095,25 +1095,42 @@
     }
 
     /* ==========================================================================
-       11. STICKY MOBILE COMPOSER
+       11. IN-CONTENT QUERY / VOICE COMPOSER
        ========================================================================== */
+    .query-bar-slot {
+      width: 100%;
+      max-width: 860px;
+      min-width: 0;
+      margin-inline: auto;
+    }
+    .ask-query-slot { max-width: none; }
+    .ask-page-heading {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .ask-page-title {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      color: var(--text-main);
+    }
+    .ask-page-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
     .sticky-composer-wrap {
-      position: fixed;
-      bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
-      left: 0;
-      right: 0;
-      z-index: 45;
-      padding: 8px 12px;
-      background: rgba(11, 8, 6, 0.95);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid var(--bg-card-border);
+      position: static;
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+      background: transparent;
+      border: none;
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
     [data-theme="coastal"] .sticky-composer-wrap {
-      background: rgba(6, 18, 25, 0.95);
+      background: transparent;
     }
 
     .composer-inner-dock {
@@ -1126,6 +1143,8 @@
       gap: 6px;
       transition: border-color 0.2s, box-shadow 0.2s;
       min-height: 48px;
+      width: 100%;
+      min-width: 0;
     }
     .composer-inner-dock:focus-within {
       border-color: var(--gold-primary);
@@ -1197,6 +1216,18 @@
       background: var(--gold-primary);
       color: #150d06;
       border: none;
+    }
+    .composer-mode-toggle { flex-shrink: 0; }
+    @media (max-width: 700px) {
+      .composer-inner-dock { flex-wrap: wrap; }
+      .composer-mode-toggle {
+        order: 5;
+        width: 100%;
+        justify-content: center;
+        padding-top: 4px;
+        border-top: 1px solid var(--bg-card-border);
+      }
+      .composer-text-input { min-width: 120px; }
     }
 
     /* ==========================================================================
@@ -1541,12 +1572,7 @@
       .mobile-bottom-nav {
         display: none;
       }
-      .sticky-composer-wrap {
-        position: static;
-        background: transparent;
-        border: none;
-        padding: 0;
-      }
+
       .main-viewport {
         padding-bottom: 40px;
         width: 100%;
@@ -1763,6 +1789,31 @@
             <div class="mando-live-bubble" id="mando-home-bubble">
               Olá! I'm Mando. Ask me about São João, Old Goa churches, authentic fish curry, or 450 years of history.
             </div>
+          </div>
+
+          <!-- One shared composer; navigation moves this same node to Ask Mando. -->
+          <div class="query-bar-slot" id="home-query-slot">
+            <div class="sticky-composer-wrap" id="query-composer">
+              <div class="composer-inner-dock">
+                <button class="lang-selector-btn" onclick="openBottomSheet('sheet-lang')" title="Change Language" aria-label="Change language" aria-haspopup="dialog">
+                  <span id="active-lang-code">AUTO</span>
+                  <span style="font-size:8px;">▼</span>
+                </button>
+                <label for="mobile-query-input" class="sr-only">Ask Mando a question about Goa</label>
+                <input type="text" id="mobile-query-input" class="composer-text-input" placeholder="Ask Mando anything about Goa..." aria-label="Ask Mando a question about Goa" onkeydown="if(event.key==='Enter') submitComposerQuery()">
+                <button class="composer-action-btn mic-btn-main" id="mobile-mic-btn" title="Voice Input" aria-label="Ask by voice" onclick="toggleVoiceRecording()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                <div class="answer-mode-toggle composer-mode-toggle" role="group" aria-label="Answer detail mode">
+                  <button class="answer-mode-btn" id="mode-fast" onclick="selectAnswerMode('fast')">⚡ Fast Answer</button>
+                  <button class="answer-mode-btn active" id="mode-detailed" onclick="selectAnswerMode('detailed')">🧠 Detailed Answer</button>
+                </div>
+                <button class="composer-action-btn send-btn-main" title="Send" aria-label="Send question" onclick="submitComposerQuery()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+              </div>
+            </div>
+          </div>
 
             <!-- Quick Suggestions -->
             <div class="prompt-chips-scroll">
@@ -1772,7 +1823,6 @@
               <button class="prompt-chip" onclick="askQuestion('Tell me about the Basilica of Bom Jesus in Old Goa')">⛪ Old Goa</button>
               <button class="prompt-chip" onclick="askQuestion('What is Mando music?')">🎻 Mando Music</button>
             </div>
-          </div>
 
           <!-- 2-Column Explore Categories Grid -->
           <div>
@@ -1973,7 +2023,12 @@
 
         <!-- ================= PAGE 3: CONVERSATION (MANDO CHAT) ================= -->
         <section class="view-page" id="view-mando">
-          
+          <div class="ask-page-heading">
+            <h1 class="ask-page-title">ASK MANDO</h1>
+            <p class="ask-page-subtitle">Ask by voice or text, then explore Mando's sourced answer.</p>
+          </div>
+          <div class="query-bar-slot ask-query-slot" id="ask-query-slot"></div>
+
           <div class="conversation-stream" id="conversation-stream">
             <!-- User Query Bubble -->
             <div class="user-query-bubble" id="conv-user-query">
@@ -2007,10 +2062,6 @@
 
               <div class="answer-title-row">
                 <h2 class="answer-title">MANDO ANSWER</h2>
-                <div class="answer-mode-toggle" role="group" aria-label="Answer detail mode">
-                  <button class="answer-mode-btn" id="mode-fast" onclick="selectAnswerMode('fast')">⚡ Fast Answer</button>
-                  <button class="answer-mode-btn active" id="mode-detailed" onclick="selectAnswerMode('detailed')">🧠 Detailed Answer</button>
-                </div>
               </div>
 
               <!-- Main Answer Text -->
@@ -2137,32 +2188,6 @@
 
     </main>
 
-    <!-- ==========================================================================
-       STICKY MOBILE COMPOSER DOCK (Always Accessible Above Bottom Nav)
-       ========================================================================== -->
-    <div class="sticky-composer-wrap">
-      <div class="composer-inner-dock">
-        <!-- Language Trigger Button -->
-        <button class="lang-selector-btn" onclick="openBottomSheet('sheet-lang')" title="Change Language" aria-label="Change language" aria-haspopup="dialog">
-          <span id="active-lang-code">AUTO</span>
-          <span style="font-size:8px;">▼</span>
-        </button>
-
-        <!-- Main Query Input -->
-        <label for="mobile-query-input" class="sr-only">Ask Mando a question about Goa</label>
-        <input type="text" id="mobile-query-input" class="composer-text-input" placeholder="Ask Mando about Goa..." aria-label="Ask Mando a question about Goa" onkeydown="if(event.key==='Enter') submitComposerQuery()">
-
-        <!-- Voice Mic Button -->
-        <button class="composer-action-btn mic-btn-main" id="mobile-mic-btn" title="Voice Input" aria-label="Ask by voice" onclick="toggleVoiceRecording()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-        </button>
-
-        <!-- Send Button -->
-        <button class="composer-action-btn send-btn-main" title="Send" aria-label="Send question" onclick="submitComposerQuery()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-        </button>
-      </div>
-    </div>
 
     <!-- ==========================================================================
        MOBILE BOTTOM NAVIGATION (5 Clear Tabs)
@@ -2541,13 +2566,26 @@
     }
 
     // 1. Navigation Tab Switching
+    function placeComposerForView(tabName) {
+      const composer = document.getElementById('query-composer');
+      const slot = document.getElementById(
+        tabName === 'mando' ? 'ask-query-slot' : 'home-query-slot'
+      );
+      if (composer && slot && composer.parentElement !== slot) {
+        slot.appendChild(composer);
+      }
+    }
+
     function switchNavTab(tabName) {
       activeTab = tabName;
 
       // Update pages
       document.querySelectorAll('.view-page').forEach(page => page.classList.remove('active'));
       const activePage = document.getElementById('view-' + tabName);
-      if (activePage) activePage.classList.add('active');
+      if (activePage) {
+        activePage.classList.add('active');
+        placeComposerForView(tabName);
+      }
 
       // Update mobile bottom nav
       document.querySelectorAll('.mobile-bottom-nav .nav-tab-item').forEach(btn => btn.classList.remove('active'));

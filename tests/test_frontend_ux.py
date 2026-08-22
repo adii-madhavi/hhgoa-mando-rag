@@ -88,3 +88,30 @@ def test_responsive_breakpoints_keep_layout_bounded():
     assert "grid-template-columns: repeat(4, 1fr)" in FRONTEND
     assert "grid-template-columns: repeat(2, 1fr)" in FRONTEND
     assert "min-width: 0" in FRONTEND
+
+
+def test_shared_query_bar_is_ordered_for_home_and_ask_views():
+    home = FRONTEND[FRONTEND.index('id="view-home"'):FRONTEND.index('id="view-explore"')]
+    assert home.index('id="mando-home-card"') < home.index('id="home-query-slot"')
+    assert home.index('id="home-query-slot"') < home.index('class="prompt-chips-scroll"')
+    assert home.index('id="home-query-slot"') < home.index("Explore Categories")
+
+    ask = FRONTEND[FRONTEND.index('id="view-mando"'):FRONTEND.index('id="view-timeline"')]
+    assert ask.index('class="ask-page-title"') < ask.index('id="ask-query-slot"')
+    assert ask.index('id="ask-query-slot"') < ask.index('id="conversation-stream"')
+
+
+def test_query_bar_is_single_responsive_component_with_existing_handlers():
+    assert FRONTEND.count('id="query-composer"') == 1
+    assert FRONTEND.count('id="mobile-query-input"') == 1
+    assert FRONTEND.count('id="mobile-mic-btn"') == 1
+    assert "placeComposerForView(tabName)" in FRONTEND
+    assert "slot.appendChild(composer)" in FRONTEND
+    assert 'onclick="toggleVoiceRecording()"' in FRONTEND
+    assert 'onclick="submitComposerQuery()"' in FRONTEND
+    assert "askQuestion(q)" in FRONTEND
+    assert 'id="mode-fast"' in FRONTEND and 'id="mode-detailed"' in FRONTEND
+    assert "width: 100%" in FRONTEND
+    assert "max-width: 860px" in FRONTEND
+    assert "flex-wrap: wrap" in FRONTEND
+    assert "overflow-x: clip" in FRONTEND
